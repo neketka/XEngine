@@ -1,0 +1,147 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<Project ToolsVersion="4.0" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
+  <ItemGroup>
+    <Filter Include="ECS">
+      <UniqueIdentifier>{d2504378-37a4-4418-a3fd-fd45d62057db}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="OpenGL">
+      <UniqueIdentifier>{307aef5f-8efa-4e55-9b7a-7a6dc82249fe}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Allocators">
+      <UniqueIdentifier>{59cbd99a-2b02-4e40-b5a1-189bf19cdec7}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Library">
+      <UniqueIdentifier>{93995380-89BD-4b04-88EB-625FBE52EBFB}</UniqueIdentifier>
+      <Extensions>
+      </Extensions>
+    </Filter>
+    <Filter Include="Engine">
+      <UniqueIdentifier>{c0e139c8-c2ae-4680-a57e-fc5482357214}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="_Staging">
+      <UniqueIdentifier>{3ff55a2c-787f-40ed-b7ea-6ca672b5d8eb}</UniqueIdentifier>
+      <Extensions>h;hh;hpp;hxx;hm;inl;inc;ipp;xsd;cpp</Extensions>
+    </Filter>
+  </ItemGroup>
+  <ItemGroup>
+    <ClInclude Include="framework.h">
+      <Filter>Library</Filter>
+    </ClInclude>
+    <ClInclude Include="pch.h">
+      <Filter>Library</Filter>
+    </ClInclude>
+    <ClInclude Include="ChunkAllocator.h">
+      <Filter>Allocators</Filter>
+    </ClInclude>
+    <ClInclude Include="ShaderConstants.h">
+      <Filter>OpenGL</Filter>
+    </ClInclude>
+    <ClInclude Include="Shader.h">
+      <Filter>OpenGL</Filter>
+    </ClInclude>
+    <ClInclude Include="Pipeline.h">
+      <Filter>OpenGL</Filter>
+    </ClInclude>
+    <ClInclude Include="Quad.h">
+      <Filter>OpenGL</Filter>
+    </ClInclude>
+    <ClInclude Include="Sampler.h">
+      <Filter>OpenGL</Filter>
+    </ClInclude>
+    <ClInclude Include="Texture.h">
+      <Filter>OpenGL</Filter>
+    </ClInclude>
+    <ClInclude Include="VertexArray.h">
+      <Filter>OpenGL</Filter>
+    </ClInclude>
+    <ClInclude Include="GLResource.h">
+      <Filter>OpenGL</Filter>
+    </ClInclude>
+    <ClInclude Include="ShaderDescriptor.h">
+      <Filter>OpenGL</Filter>
+    </ClInclude>
+    <ClInclude Include="CommandBuffer.h">
+      <Filter>OpenGL</Filter>
+    </ClInclude>
+    <ClInclude Include="Buffer.h">
+      <Filter>OpenGL</Filter>
+    </ClInclude>
+    <ClInclude Include="ECS.h">
+      <Filter>ECS</Filter>
+    </ClInclude>
+    <ClInclude Include="Framebuffer.h">
+      <Filter>OpenGL</Filter>
+    </ClInclude>
+    <ClInclude Include="XEngine.h">
+      <Filter>Engine</Filter>
+    </ClInclude>
+    <ClInclude Include="System.h">
+      <Filter>ECS</Filter>
+    </ClInclude>
+    <ClInclude Include="Component.h">
+      <Filter>ECS</Filter>
+    </ClInclude>
+    <ClInclude Include="Entity.h">
+      <Filter>ECS</Filter>
+    </ClInclude>
+    <ClInclude Include="UUID.h">
+      <Filter>Library</Filter>
+    </ClInclude>
+    <ClInclude Include="exports.h">
+      <Filter>Library</Filter>
+    </ClInclude>
+  </ItemGroup>
+  <ItemGroup>
+    <ClCompile Include="Buffer.cpp">
+      <Filter>OpenGL</Filter>
+    </ClCompile>
+    <ClCompile Include="ChunkAllocator.cpp">
+      <Filter>Allocators</Filter>
+    </ClCompile>
+    <ClCompile Include="ECS.cpp">
+      <Filter>ECS</Filter>
+    </ClCompile>
+    <ClCompile Include="CommandBuffer.cpp">
+      <Filter>OpenGL</Filter>
+    </ClCompile>
+    <ClCompile Include="Framebuffer.cpp">
+      <Filter>OpenGL</Filter>
+    </ClCompile>
+    <ClCompile Include="Pipeline.cpp">
+      <Filter>OpenGL</Filter>
+    </ClCompile>
+    <ClCompile Include="Sampler.cpp">
+      <Filter>OpenGL</Filter>
+    </ClCompile>
+    <ClCompile Include="Shader.cpp">
+      <Filter>OpenGL</Filter>
+    </ClCompile>
+    <ClCompile Include="ShaderConstants.cpp">
+      <Filter>OpenGL</Filter>
+    </ClCompile>
+    <ClCompile Include="ShaderDescriptor.cpp">
+      <Filter>OpenGL</Filter>
+    </ClCompile>
+    <ClCompile Include="Texture.cpp">
+      <Filter>OpenGL</Filter>
+    </ClCompile>
+    <ClCompile Include="VertexArray.cpp">
+      <Filter>OpenGL</Filter>
+    </ClCompile>
+    <ClCompile Include="dllmain.cpp">
+      <Filter>Library</Filter>
+    </ClCompile>
+    <ClCompile Include="pch.cpp">
+      <Filter>Library</Filter>
+    </ClCompile>
+    <ClCompile Include="XEngine.cpp">
+      <Filter>Engine</Filter>
+    </ClCompile>
+    <ClCompile Include="UUID.cpp">
+      <Filter>Library</Filter>
+    </ClCompile>
+    <ClCompile Include="Component.cpp">
+      <Filter>ECS</Filter>
+    </ClCompile>
+  </ItemGroup>
+</Project>
