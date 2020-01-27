@@ -5,6 +5,7 @@ ComponentManager::ComponentManager(Scene *scene)
 {
 	m_componentChunkSize = 32;
 	m_componentDisposedChunkSize = 8;
+	m_scene = scene;
 }
 
 ComponentManager::~ComponentManager()
@@ -58,7 +59,32 @@ FilteringGroupId ComponentManager::AddFilteringGroup(std::vector<ComponentTypeId
 
 std::vector<ComponentDataIterator> *ComponentManager::GetFilteringGroup(FilteringGroupId filteringGroup, bool disposed)
 {
-	return nullptr;
+	ECSRegistrar *registrar = XEngine::GetInstance().GetECSRegistrar();
+	
+	std::vector<ComponentDataIterator> *filtering = new std::vector<ComponentDataIterator>;
+	std::vector<UniqueId>& order = m_idToFiltering[filteringGroup];
+	auto& compTypes = m_internalFilteringIdToComponentGroup[m_filteringIdToInternalId[filteringGroup]];
+	for (ComponentGroupType *type : compTypes)
+	{
+		int chunkCount = type->Allocators[0].GetAllChunks().size();
+		for (int chunk = 0; chunk < chunkCount; ++chunk)
+		{
+			std::vector<void *> compBlocks(type->ComponentTypes.size());
+			std::vector<int> sizes(type->ComponentTypes.size());
+
+			for (int comp = 0; comp < type->ComponentTypes.size(); ++comp)
+			{
+				auto allocator = (disposed ? type->CompTypeToDisposedAllocator : type->CompTypeToAllocator)[order[comp]];
+				compBlocks[comp] = allocator->GetAllChunks()[chunk].Memory;
+				sizes[comp] = allocator->GetPerObjectSize();
+			}
+
+			int count = type->Allocators[0].GetAllChunks()[0].ObjectCount;
+			filtering->push_back(ComponentDataIterator(sizes, compBlocks, 0, count));
+		}
+	}
+
+	return filtering;
 }
 
 ComponentGroupId ComponentManager::AllocateComponentGroup(std::set<ComponentTypeId> components)
@@ -105,6 +131,7 @@ ComponentGroupType *ComponentManager::GetComponentGroupType(std::set<ComponentTy
 			type->Allocators.push_back(MemoryChunkAllocator(type->ChunkSize, size));
 			type->DisposedAllocators.push_back(MemoryChunkAllocator(m_componentDisposedChunkSize, size));
 			type->CompTypeToAllocator[id] = &type->Allocators.back();
+			type->CompTypeToDisposedAllocator[id] = &type->DisposedAllocators.back();
 		}
 		for (auto pair : m_filteringCompsToInternalFiltering)
 		{
@@ -196,4 +223,30 @@ void ComponentManager::ClearDeletedSingleThread()
 		m_disposed.push_back(id);
 	}
 	m_moveToDisposed.clear();
+}
+
+std::vector<ComponentTypeId>& ComponentManager::GetComponentTypes(ComponentGroupId id)
+{
+	return m_componentGroups[id].second->ComponentTypes;
+}
+
+void ComponentBuffer::InitializeBufferStore()
+{
+	m_holder = nullptr;
+}
+
+void ComponentBuffer::DestroyBufferStore()
+{
+	if (m_holder)
+		delete m_holder;
+}
+
+void *ComponentBuffer::GetRawBufferData()
+{
+	return m_holder->GetMemory();
+}
+
+int ComponentBuffer::GetTotalBufferSize()
+{
+	return m_holder->GetTotalSize();
 }

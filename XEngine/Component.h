@@ -16,6 +16,39 @@
 #include <concurrent_unordered_map.h>
 #include <concurrent_unordered_set.h>
 
+
+class ComponentBufferHolder
+{
+public:
+	virtual ~ComponentBufferHolder() = 0;
+	virtual void *GetMemory() = 0;
+	virtual int GetTotalSize() = 0;
+};
+
+template<class T>
+class TypedBufferHolder : public ComponentBufferHolder
+{
+public:
+	virtual ~ComponentBufferHolder() {}
+
+	virtual void *GetMemory() override
+	{
+		return m_vec.data();
+	}
+
+	virtual int GetTotalSize() override
+	{
+		return sizeof(T) * m_vec.size();
+	}
+
+	std::vector<T>& GetVector()
+	{
+		return m_vec;
+	}
+private:
+	std::vector<T> m_vec;
+};
+
 class ComponentBuffer
 {
 public:
@@ -23,6 +56,23 @@ public:
 	void DestroyBufferStore();
 	void *GetRawBufferData();
 	int GetTotalBufferSize();
+protected:
+	ComponentBufferHolder *m_holder;
+};
+
+template<class T>
+class TypedComponentBuffer
+{
+public:
+	std::vector<T>& GetVector()
+	{
+		TypedBufferHolder<T> *typed;
+		if (m_holder)
+			typed = dynamic_cast<TypedBufferHolder<T>>(m_holder);
+		else
+			typed = new TypedBufferHolder<T>();
+		return typed->GetVector();
+	}
 };
 
 class Component
@@ -76,6 +126,7 @@ class ComponentGroupType
 public:
 	int ChunkSize;
 	std::map<UniqueId, MemoryChunkAllocator *> CompTypeToAllocator;
+	std::map<UniqueId, MemoryChunkAllocator *> CompTypeToDisposedAllocator;
 	std::vector<UniqueId> ComponentTypes;
 	std::vector<MemoryChunkAllocator> Allocators;
 	std::vector<MemoryChunkAllocator> DisposedAllocators;
@@ -148,6 +199,7 @@ public:
 	XENGINEAPI std::vector<Component *> GetComponentGroupData(ComponentGroupId componentGroup);
 	XENGINEAPI Component *GetComponentGroupData(ComponentGroupId componentGroup, ComponentTypeId id);
 	XENGINEAPI void ClearDeletedSingleThread();
+	XENGINEAPI std::vector<ComponentTypeId>& GetComponentTypes(ComponentGroupId id);
 	template<class T>
 	T *Upcast(void *memory, int offset)
 	{

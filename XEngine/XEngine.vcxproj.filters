@@ -143,6 +143,9 @@
     <ClCompile Include="Component.cpp">
       <Filter>ECS</Filter>
     </ClCompile>
+    <ClCompile Include="Entity.cpp">
+      <Filter>_Staging</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <None Include="cpp.hint" />

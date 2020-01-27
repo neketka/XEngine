@@ -14,7 +14,7 @@ class Entity
 public:
 	Entity(EntityId id, EntityManager *manager) : m_id(id), m_manager(manager) {}
 	XENGINEAPI void Kill();
-	XENGINEAPI std::vector<Component *>& GetComponents();
+	XENGINEAPI std::vector<Component *> GetComponents();
 	template<class T>
 	T *GetComponent()
 	{
@@ -49,9 +49,10 @@ public:
 	XENGINEAPI void DestroyEntity(EntityId id);
 	XENGINEAPI Entity GetEntityByComponent(EntityId id, ComponentTypeId componentId);
 	XENGINEAPI void AddComponentToEntity(EntityId id, ComponentTypeId componentId);
-	XENGINEAPI void RemoveComponentFromEntity(ComponentTypeId componentId);
+	XENGINEAPI void RemoveComponentFromEntity(EntityId id, ComponentTypeId componentId);
 	XENGINEAPI std::vector<Entity> GetEntitiesByComponent(ComponentTypeId componentId);
 	XENGINEAPI std::vector<Component *> GetEntityComponents(EntityId id);
 	XENGINEAPI Component *GetEntityComponent(EntityId id, ComponentTypeId componentId);
 private:
+	Scene *m_scene;
 };
