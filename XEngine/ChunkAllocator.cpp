@@ -1,6 +1,8 @@
+#include "pch.h"
 #include "ChunkAllocator.h"
 
-MemoryChunkAllocator::MemoryChunkAllocator(int objectsPerChunk, int bytesPerObject) : m_objectsPerChunk(objectsPerChunk), m_bytesPerObject(bytesPerObject)
+MemoryChunkAllocator::MemoryChunkAllocator(int objectsPerChunk, int bytesPerObject) : m_objectsPerChunk(objectsPerChunk), m_bytesPerObject(bytesPerObject), 
+	m_bufferedCount(0), m_chunkCount(0), m_fullChunks(0)
 {
 }
 

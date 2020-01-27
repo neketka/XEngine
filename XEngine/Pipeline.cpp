@@ -1,3 +1,4 @@
+#include "pch.h"
 #include "Pipeline.h"
 
 void Pipeline::Optimize(Pipeline& previous)

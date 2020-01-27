@@ -19,6 +19,9 @@ enum class SystemThreading
 	EntityMainPostMulti, EntityMultiPostMulti, EntitySinglePostMulti
 };
 
+using EventId = UniqueId;
+
+class SubsystemManager;
 class ISystem
 {
 public:
@@ -57,7 +60,7 @@ public:
 	XENGINEAPI SystemManager(Scene *scene);
 	XENGINEAPI ~SystemManager();
 	XENGINEAPI void AddSystem(std::string name);
-	XENGINEAPI std::vector<ISystem *> GetEnabledSystems();
+	XENGINEAPI std::vector<ISystem *> GetSystems();
 private:
 	std::vector<ISystem *> m_systems;
 };
@@ -70,7 +73,7 @@ public:
 	XENGINEAPI ISystem *GetSystem(std::string name);
 
 	XENGINEAPI void SetSceneManager(SystemManager *manager);
-	XENGINEAPI void RaiseEvent(std::vector<Entity> e, UniqueId eventId);
+	XENGINEAPI void RaiseEvent(std::vector<Entity> e, EventId eventId);
 
 	XENGINEAPI void AddSystem(std::string name);
 	XENGINEAPI void SetThreadsAvailable(int threads);

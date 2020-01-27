@@ -1,3 +1,5 @@
+#include "pch.h"
+
 #include "Buffer.h"
 
 TBuffer::TBuffer(void *data, int tsize, int length, BufferOptions options)

@@ -70,6 +70,19 @@ void XEngine::LoadProperties()
 {
 }
 
+float XEngine::GetTime()
+{
+	return 0.0f;
+}
+
+void XEngine::AddBeginMarker(std::string label)
+{
+}
+
+void XEngine::AddEndMarker(std::string label)
+{
+}
+
 void XEngine::SetRootPath(std::string rootPath)
 {
 	m_rootPath = rootPath;

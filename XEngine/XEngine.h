@@ -24,6 +24,10 @@ public:
 	XENGINEAPI void SaveProperties();
 	XENGINEAPI void LoadProperties();
 
+	XENGINEAPI float GetTime();
+	XENGINEAPI void AddBeginMarker(std::string label);
+	XENGINEAPI void AddEndMarker(std::string label);
+
 	XENGINEAPI void SetRootPath(std::string rootPath);
 
 	XENGINEAPI void SetScene(Scene *scene);

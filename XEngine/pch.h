@@ -9,5 +9,6 @@
 
 // add headers that you want to pre-compile here
 #include "ECS.h"
+#include "XEngine.h"
 
 #endif //PCH_H

@@ -18,6 +18,9 @@ public:
 	std::string Name;
 	int Size;
 	UniqueId Identifier;
+	bool Buffered;
+	int ComponentOffset;
+	int BufferOffset;
 };
 
 class ECSRegistrar
@@ -35,14 +38,21 @@ public:
 		info.Name = StaticComponentInfo<T>::GetName();
 		info.Size = StaticComponentInfo<T>::GetSize();
 		info.Identifier = StaticComponentInfo<T>::GetIdentifier();
+		info.Buffered = StaticComponentInfo<T>::IsBuffered();
+		info.ComponentOffset = StaticComponentInfo<T>::GetComponentPointerOffset();
+		info.BufferOffset = StaticComponentInfo<T>::GetBufferPointerOffset();
 		m_components[id] = info;
 		m_componentsByName[info.Name] = id;
 	}
 	XENGINEAPI UniqueId GetComponentIdByName(std::string name);
 	XENGINEAPI std::string GetComponentName(UniqueId id);
 	XENGINEAPI int GetComponentSize(UniqueId id);
+	XENGINEAPI int GetComponentPointerOffset(UniqueId id);
+	XENGINEAPI int GetBufferPointerOffset(UniqueId id);
+	XENGINEAPI bool IsComponentBuffered(UniqueId id);
 	inline std::map<UniqueId, InternalTypeInfo>& GetComponentMap() { return m_components; }
 private:
+
 	std::map<std::string, UniqueId> m_events;
 	std::map<UniqueId, InternalTypeInfo> m_components;
 	std::map<std::string, UniqueId> m_componentsByName;

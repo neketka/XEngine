@@ -30,9 +30,6 @@
     <ClInclude Include="pch.h">
       <Filter>Library</Filter>
     </ClInclude>
-    <ClInclude Include="ChunkAllocator.h">
-      <Filter>Allocators</Filter>
-    </ClInclude>
     <ClInclude Include="ShaderConstants.h">
       <Filter>OpenGL</Filter>
     </ClInclude>
@@ -90,6 +87,9 @@
     <ClInclude Include="exports.h">
       <Filter>Library</Filter>
     </ClInclude>
+    <ClInclude Include="ChunkAllocator.h">
+      <Filter>Allocators</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="Buffer.cpp">
@@ -143,5 +143,8 @@
     <ClCompile Include="Component.cpp">
       <Filter>ECS</Filter>
     </ClCompile>
+  </ItemGroup>
+  <ItemGroup>
+    <None Include="cpp.hint" />
   </ItemGroup>
 </Project>

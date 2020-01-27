@@ -1,3 +1,4 @@
+#include "pch.h"
 #include "ECS.h"
 
 ECSRegistrar::~ECSRegistrar()
@@ -45,6 +46,21 @@ std::string ECSRegistrar::GetComponentName(UniqueId id)
 int ECSRegistrar::GetComponentSize(UniqueId id)
 {
 	return m_components[id].Size;
+}
+
+int ECSRegistrar::GetComponentPointerOffset(UniqueId id)
+{
+	return m_components[id].ComponentOffset;
+}
+
+int ECSRegistrar::GetBufferPointerOffset(UniqueId id)
+{
+	return m_components[id].BufferOffset;
+}
+
+bool ECSRegistrar::IsComponentBuffered(UniqueId id)
+{
+	return m_components[id].Buffered;
 }
 
 Scene::Scene()

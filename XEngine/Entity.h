@@ -7,32 +7,36 @@
 #include <set>
 #include <concurrent_unordered_map.h>
 
-
+using EntityId = UniqueId;
 class EntityManager;
 class Entity
 {
 public:
-	Entity(UniqueId id, EntityManager *manager) : m_id(id), m_manager(manager) {}
+	Entity(EntityId id, EntityManager *manager) : m_id(id), m_manager(manager) {}
 	XENGINEAPI void Kill();
 	XENGINEAPI std::vector<Component *>& GetComponents();
 	template<class T>
 	T *GetComponent()
 	{
-		return dynamic_cast<T *>(m_manager->GetEntityComponent(m_id, StaticComponentInfo<T>::GetIdentifier()));
+		return dynamic_cast<T *>(GetComponent(StaticComponentInfo<T>::GetIdentifier()));
 	}
 	template<class T>
 	void AddComponent()
 	{
-		m_manager->AddComponentToEntity(m_id, StaticComponentInfo<T>::GetIdentifier());
+		AddComponent(StaticComponentInfo<T>::GetIdentifier());
 	}
 	template<class T>
 	void RemoveComponent()
 	{
-		m_manager->RemoveComponentFromEntity(m_id, StaticComponentInfo<T>::GetIdentifier());
+		RemoveComponent(StaticComponentInfo<T>::GetIdentifier());
 	}
 	inline UniqueId GetId() { return m_id; }
 private:
-	UniqueId m_id;
+	void AddComponent(ComponentTypeId id);
+	void RemoveComponent(ComponentTypeId id);
+	Component *GetComponent(ComponentTypeId id);
+	
+	EntityId m_id;
 	EntityManager *m_manager;
 };
 
@@ -42,12 +46,12 @@ class EntityManager
 public:
 	XENGINEAPI EntityManager(Scene *scene);
 	XENGINEAPI Entity CreateEntity(std::vector<std::string> components);
-	XENGINEAPI void DestroyEntity(UniqueId id);
-	XENGINEAPI Entity GetEntityByComponent(UniqueId id, UniqueId componentId);
-	XENGINEAPI void AddComponentToEntity(UniqueId id, UniqueId componentId);
-	XENGINEAPI void RemoveComponentFromEntity(UniqueId componentId);
-	XENGINEAPI std::vector<Entity> GetEntitiesByComponent(UniqueId componentId);
-	XENGINEAPI std::vector<Component *> GetEntityComponents(UniqueId id);
+	XENGINEAPI void DestroyEntity(EntityId id);
+	XENGINEAPI Entity GetEntityByComponent(EntityId id, ComponentTypeId componentId);
+	XENGINEAPI void AddComponentToEntity(EntityId id, ComponentTypeId componentId);
+	XENGINEAPI void RemoveComponentFromEntity(ComponentTypeId componentId);
+	XENGINEAPI std::vector<Entity> GetEntitiesByComponent(ComponentTypeId componentId);
+	XENGINEAPI std::vector<Component *> GetEntityComponents(EntityId id);
+	XENGINEAPI Component *GetEntityComponent(EntityId id, ComponentTypeId componentId);
 private:
-	concurrency::concurrent_unordered_map<UniqueId, UniqueId> m_entityComponentGroup;
 };
