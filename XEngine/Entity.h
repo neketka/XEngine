@@ -54,5 +54,6 @@ public:
 	XENGINEAPI std::vector<Component *> GetEntityComponents(EntityId id);
 	XENGINEAPI Component *GetEntityComponent(EntityId id, ComponentTypeId componentId);
 private:
+
 	Scene *m_scene;
 };

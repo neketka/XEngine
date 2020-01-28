@@ -81,8 +81,9 @@ public:
 	UniqueId ComponentTypeID;
 	UniqueId EntityID;
 	bool Initialized;
+	bool Deleted;
 private:
-	bool padding[3];
+	bool padding[2];
 };
 
 template<class T>

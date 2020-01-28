@@ -144,7 +144,7 @@
       <Filter>ECS</Filter>
     </ClCompile>
     <ClCompile Include="Entity.cpp">
-      <Filter>_Staging</Filter>
+      <Filter>ECS</Filter>
     </ClCompile>
   </ItemGroup>
   <ItemGroup>

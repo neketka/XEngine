@@ -32,11 +32,18 @@ EntityManager::EntityManager(Scene *scene)
 
 Entity EntityManager::CreateEntity(std::vector<std::string> components)
 {
-	return Entity();
+	ECSRegistrar *registrar = XEngine::GetInstance().GetECSRegistrar();
+	std::set<ComponentTypeId> compIds;
+	for (std::string comp : components)
+	{
+		compIds.emplace(registrar->GetComponentIdByName(comp));
+	}
+	return Entity(m_scene->GetComponentManager()->AllocateComponentGroup(compIds), this);
 }
 
 void EntityManager::DestroyEntity(EntityId id)
 {
+
 }
 
 Entity EntityManager::GetEntityByComponent(EntityId id, ComponentTypeId componentId)
