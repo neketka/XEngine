@@ -65,6 +65,12 @@ private:
 	std::vector<ISystem *> m_systems;
 };
 
+// System Sorting Order
+// Organize threads of systems that depend on each other
+// Add threads of systems with possible race conditions i.e. overlapping component types
+// Fulfill threading requirements of the most selective system
+// Coalesce into the available threads as needed
+
 class SubsystemManager
 {
 public:
@@ -73,13 +79,18 @@ public:
 	XENGINEAPI ISystem *GetSystem(std::string name);
 
 	XENGINEAPI void SetSceneManager(SystemManager *manager);
-	XENGINEAPI void RaiseEvent(std::vector<Entity> e, EventId eventId);
+	XENGINEAPI void RaiseEvent(Entity e, EventId eventId);
 
 	XENGINEAPI void AddSystem(std::string name);
 	XENGINEAPI void SetThreadsAvailable(int threads);
+	XENGINEAPI void InitializeSystemOrdering();
 	XENGINEAPI void ScheduleJobs();
 	XENGINEAPI void ExecuteJobs(int threadIndex, float deltaTime);
 	XENGINEAPI void StallTillDone();
 private:
+	int m_maxThreads;
+	SystemManager *m_sceneManager;
 	std::vector<ISystem *> m_systems;
+
+	concurrency::concurrent_unordered_multimap<UniqueId, EventId> m_raisedEvents;
 };

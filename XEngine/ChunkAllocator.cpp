@@ -14,6 +14,7 @@ MemoryChunkAllocator::~MemoryChunkAllocator()
 
 MemoryChunkObjectPointer MemoryChunkAllocator::AllocateObject()
 {
+	m_mutex.lock();
 	if (m_fullChunks == m_allChunks.size())
 	{
 		for (int i = 0; i < m_bufferedCount; ++i)
@@ -38,11 +39,13 @@ MemoryChunkObjectPointer MemoryChunkAllocator::AllocateObject()
 
 	m_objectIndirectionTable[ptr] = obj;
 
+	m_mutex.unlock();
 	return ptr;
 }
 
 void MemoryChunkAllocator::FreeObject(MemoryChunkObjectPointer ptr)
 {
+	m_mutex.lock();
 	MemoryChunkObject& obj = m_objectIndirectionTable[ptr];
 	MemoryChunk *chunk = &m_allChunks[obj.ChunkIndex];
 	if (obj.ChunkIndex == m_chunkCount - 1 && chunk->ObjectCount == obj.IntrachunkIndex + 1) // Last object of last chunk
@@ -77,15 +80,20 @@ void MemoryChunkAllocator::FreeObject(MemoryChunkObjectPointer ptr)
 			m_allChunks.pop_back();
 		}
 	}
+	m_mutex.unlock();
 }
 
 void *MemoryChunkAllocator::GetObjectMemory(MemoryChunkObjectPointer ptr)
 {
-	return m_objectIndirectionTable[ptr].Memory;
+	m_mutex.lock();
+	auto val = m_objectIndirectionTable[ptr].Memory;
+	m_mutex.unlock();
+	return val;
 }
 
 void MemoryChunkAllocator::SetBufferedChunkCount(int count)
 {
+	m_mutex.lock();
 	m_bufferedCount = count;
 	for (int i = 0; i < m_bufferedCount - (m_allChunks.size() - m_chunkCount); ++i)
 		AllocateNewChunk();
@@ -94,6 +102,7 @@ void MemoryChunkAllocator::SetBufferedChunkCount(int count)
 		std::free(m_allChunks.back().Memory);
 		m_allChunks.pop_back();
 	}
+	m_mutex.unlock();
 }
 
 std::vector<MemoryChunk>& MemoryChunkAllocator::GetAllChunks()
@@ -103,6 +112,7 @@ std::vector<MemoryChunk>& MemoryChunkAllocator::GetAllChunks()
 
 void MemoryChunkAllocator::AllocateNewChunk()
 {
+	m_mutex.lock();
 	m_allChunks.push_back(MemoryChunk());
 	MemoryChunk& chunk = m_allChunks.back();
 	chunk.Index = m_allChunks.size() - 1;
@@ -119,4 +129,5 @@ void MemoryChunkAllocator::AllocateNewChunk()
 		obj.AllocCount = 0;
 		obj.Pointer = 0;
 	}
+	m_mutex.unlock();
 }

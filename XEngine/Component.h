@@ -192,6 +192,7 @@ public:
 	XENGINEAPI void InitializeFilteringGroups();
 	XENGINEAPI FilteringGroupId AddFilteringGroup(std::vector<ComponentTypeId> components);
 	XENGINEAPI std::vector<ComponentDataIterator> *GetFilteringGroup(FilteringGroupId filteringGroup, bool disposed);
+	XENGINEAPI ComponentGroupId GetFirstComponentGroupWithType(ComponentTypeId id);
 	XENGINEAPI ComponentGroupId AllocateComponentGroup(std::set<ComponentTypeId> components);
 	XENGINEAPI ComponentGroupType *GetComponentGroupType(std::set<ComponentTypeId> components);
 	XENGINEAPI void DeleteComponentGroup(ComponentGroupId id);
@@ -199,17 +200,22 @@ public:
 	XENGINEAPI std::vector<UniqueId>& GetComponentIdsFromComponentGroup(ComponentGroupId componentGroup);
 	XENGINEAPI std::vector<Component *> GetComponentGroupData(ComponentGroupId componentGroup);
 	XENGINEAPI Component *GetComponentGroupData(ComponentGroupId componentGroup, ComponentTypeId id);
-	XENGINEAPI void ClearDeletedSingleThread();
+	XENGINEAPI void RebuildComponentGroup(ComponentGroupId componentGroup, std::set<ComponentTypeId> components);
+	XENGINEAPI void ExecuteSingleThreadOps();
 	XENGINEAPI std::vector<ComponentTypeId>& GetComponentTypes(ComponentGroupId id);
+
 	template<class T>
 	T *Upcast(void *memory, int offset)
 	{
 		return reinterpret_cast<T *>(static_cast<char *>(memory) + offset);
 	}
 private:
+	void AllocCompGroup(std::set<ComponentTypeId> components, bool copied, UniqueId id);
+	Scene *m_scene;
+
 	int m_componentChunkSize;
 	int m_componentDisposedChunkSize;
-	Scene *m_scene;
+
 	std::map<std::vector<ComponentTypeId>, UniqueId> m_filteringToId;
 	std::map<UniqueId, std::vector<ComponentTypeId>> m_idToFiltering;
 	std::map<UniqueId, UniqueId> m_filteringIdToInternalId;
@@ -217,7 +223,9 @@ private:
 	std::map<std::set<ComponentTypeId>, UniqueId> m_filteringCompsToInternalFiltering;
 	std::map<std::set<ComponentTypeId>, ComponentGroupType *> m_componentGroupTypes;
 	std::unordered_map<UniqueId, concurrency::concurrent_vector<ComponentGroupType *>> m_internalFilteringIdToComponentGroup;
+
 	concurrency::concurrent_unordered_map<UniqueId, std::pair<MemoryChunkObjectPointer, ComponentGroupType *>> m_componentGroups;
+	concurrency::concurrent_unordered_map<UniqueId, std::pair<MemoryChunkObjectPointer, ComponentGroupType *>> m_copiedComponentGroups;
 
 	concurrency::concurrent_unordered_set<UniqueId> m_moveToDisposed;
 	std::vector<UniqueId> m_disposed;

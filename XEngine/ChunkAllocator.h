@@ -1,6 +1,7 @@
 #pragma once
 #include <vector>
 #include <map>
+#include <mutex>
 
 #include "exports.h"
 
@@ -37,6 +38,8 @@ public:
 	XENGINEAPI std::vector<MemoryChunk>& GetAllChunks();
 	inline int GetPerObjectSize() { return m_bytesPerObject; }
 private:
+	std::mutex m_mutex;
+
 	std::map<long long, MemoryChunkObject> m_objectIndirectionTable;
 	std::vector<MemoryChunk> m_allChunks;
 	int m_fullChunks;

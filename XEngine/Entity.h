@@ -30,6 +30,10 @@ public:
 	{
 		RemoveComponent(StaticComponentInfo<T>::GetIdentifier());
 	}
+	EntityManager *GetManager()
+	{
+		return m_manager;
+	}
 	inline UniqueId GetId() { return m_id; }
 private:
 	void AddComponent(ComponentTypeId id);
@@ -53,7 +57,7 @@ public:
 	XENGINEAPI std::vector<Entity> GetEntitiesByComponent(ComponentTypeId componentId);
 	XENGINEAPI std::vector<Component *> GetEntityComponents(EntityId id);
 	XENGINEAPI Component *GetEntityComponent(EntityId id, ComponentTypeId componentId);
+	XENGINEAPI Scene *GetScene();
 private:
-
 	Scene *m_scene;
 };

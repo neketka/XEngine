@@ -17,7 +17,7 @@ void Entity::AddComponent(ComponentTypeId id)
 
 void Entity::RemoveComponent(ComponentTypeId id)
 {
-	m_manager->RemoveComponentFromEntity()
+	m_manager->RemoveComponentFromEntity(m_id, id);
 }
 
 Component *Entity::GetComponent(ComponentTypeId id)
@@ -43,33 +43,60 @@ Entity EntityManager::CreateEntity(std::vector<std::string> components)
 
 void EntityManager::DestroyEntity(EntityId id)
 {
-
-}
-
-Entity EntityManager::GetEntityByComponent(EntityId id, ComponentTypeId componentId)
-{
-	return Entity();
+	m_scene->GetComponentManager()->DeleteComponentGroup(id);
 }
 
 void EntityManager::AddComponentToEntity(EntityId id, ComponentTypeId componentId)
 {
+	std::vector<ComponentTypeId>& types = m_scene->GetComponentManager()->GetComponentIdsFromComponentGroup(componentId);
+	std::set<ComponentTypeId> typeSet(types.begin(), types.end());
+	typeSet.emplace(id);
+	m_scene->GetComponentManager()->RebuildComponentGroup(id, typeSet);
 }
 
 void EntityManager::RemoveComponentFromEntity(EntityId id, ComponentTypeId componentId)
 {
+	std::vector<ComponentTypeId>& types = m_scene->GetComponentManager()->GetComponentIdsFromComponentGroup(componentId);
+	std::set<ComponentTypeId> typeSet(types.begin(), types.end());
+	typeSet.erase(id);
+	m_scene->GetComponentManager()->RebuildComponentGroup(id, typeSet);
+}
+
+std::vector<Component *> EntityManager::GetEntityComponents(EntityId id)
+{
+	return m_scene->GetComponentManager()->GetComponentGroupData(id);
+}
+
+Component *EntityManager::GetEntityComponent(EntityId id, ComponentTypeId componentId)
+{
+	return m_scene->GetComponentManager()->GetComponentGroupData(id, componentId);
+}
+
+Scene *EntityManager::GetScene()
+{
+	return m_scene;
+}
+
+Entity EntityManager::GetEntityByComponent(EntityId id, ComponentTypeId componentId)
+{
+	return Entity(m_scene->GetComponentManager()->GetFirstComponentGroupWithType(componentId), this); 
 }
 
 std::vector<Entity> EntityManager::GetEntitiesByComponent(ComponentTypeId componentId)
 {
-	return std::vector<Entity>();
-}
-
-std::vector<Component*> EntityManager::GetEntityComponents(EntityId id)
-{
-	return std::vector<Component*>();
-}
-
-Component * EntityManager::GetEntityComponent(EntityId id, ComponentTypeId componentId)
-{
-	return nullptr;
+	ECSRegistrar *registrar = XEngine::GetInstance().GetECSRegistrar();
+	UniqueId group = m_scene->GetComponentManager()->AddFilteringGroup({ componentId });
+	int pointerOffset = registrar->GetComponentPointerOffset(componentId);
+	std::vector<Entity> ents;
+	std::vector<ComponentDataIterator> *compIterators = m_scene->GetComponentManager()->GetFilteringGroup(group, false);
+	for (ComponentDataIterator iter : *compIterators)
+	{
+		for (void **dat = iter.Next<void *>(); dat; dat = iter.Next<void *>())
+		{
+			EntityId id = m_scene->GetComponentManager()->Upcast<Component>(dat, pointerOffset)->EntityID;
+			ents.push_back(Entity(id, this));
+		}
+	}
+	
+	return ents;
 }

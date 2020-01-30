@@ -90,6 +90,9 @@
     <ClInclude Include="ChunkAllocator.h">
       <Filter>Allocators</Filter>
     </ClInclude>
+    <ClInclude Include="SystemGraphSorter.h">
+      <Filter>ECS</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="Buffer.cpp">
@@ -144,6 +147,12 @@
       <Filter>ECS</Filter>
     </ClCompile>
     <ClCompile Include="Entity.cpp">
+      <Filter>ECS</Filter>
+    </ClCompile>
+    <ClCompile Include="System.cpp">
+      <Filter>ECS</Filter>
+    </ClCompile>
+    <ClCompile Include="SystemGraphSorter.cpp">
       <Filter>ECS</Filter>
     </ClCompile>
   </ItemGroup>

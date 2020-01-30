@@ -7,5 +7,8 @@ UniqueId GenerateID()
 {
 	static std::random_device dev;
 	static std::mt19937 rng(dev());
-	return std::uniform_int_distribution<UniqueId>()(rng);
+	UniqueId id = std::uniform_int_distribution<UniqueId>()(rng);
+	if (id == 0)
+		return GenerateID();
+	return id;
 }
