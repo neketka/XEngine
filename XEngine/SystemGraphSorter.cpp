@@ -36,15 +36,25 @@ void SystemGraphSorter::SetupGraph()
 	{
 		if (node.Inputs.size() == 0)
 			m_startingNodes.push_back(index);
+		if (node.Outputs.size() == 0)
+			m_endingNodes.push_back(index);
 		++index;
 	}
 	std::map<std::string, ISystem *>().swap(m_systems);
 	std::map<std::string, int>().swap(m_systemNodes);
 }
 
-std::vector<std::vector<ISystem *>> SystemGraphSorter::GetAllPaths()
+void SystemGraphSorter::CombineParallels()
 {
-	std::vector<std::vector<ISystem *>> paths;
+
+}
+
+void SystemGraphSorter::SolvePaths()
+{
+	SetupGraph();
+	CombineParallels();
+
+	m_paths.clear();
 	for (int start : m_startingNodes)
 	{
 		DirectedSystemGraphNode& node = m_nodes[m_startingNodes[start]];
@@ -52,6 +62,11 @@ std::vector<std::vector<ISystem *>> SystemGraphSorter::GetAllPaths()
 
 		//TODO: depth first search
 
-		paths.push_back(path);
+		m_paths.push_back(path);
 	}
+}
+
+std::vector<std::vector<ISystem *>>& SystemGraphSorter::GetAllPaths()
+{
+	return m_paths;
 }
