@@ -23,10 +23,10 @@ UniqueId ECSRegistrar::GetEventId(std::string name)
 {
 	UniqueId id;
 	auto itr = m_events.find(name);
-	if (itr == m_events.end())
+	if (itr == m_events.end()) // Does the current event id exists
 	{
-		id = GenerateID();
-		m_events[name] = id;
+		id = GenerateID(); // Create a new event id
+		m_events[name] = id; // Store the new event by name
 	}
 	else
 		id = itr->second;
@@ -58,17 +58,23 @@ int ECSRegistrar::GetBufferPointerOffset(UniqueId id)
 	return m_components[id].BufferOffset;
 }
 
-bool ECSRegistrar::IsComponentBuffered(UniqueId id)
+bool ECSRegistrar::IsBufferedComponented(UniqueId id)
 {
 	return m_components[id].Buffered;
 }
 
-Scene::Scene()
+Scene::Scene(std::string name) : m_name(name)
 {
+	m_sysManager = new SystemManager(this);
+	m_compManager = new ComponentManager(this);
+	m_entManager = new EntityManager(this);
 }
 
 Scene::~Scene()
 {
+	delete m_sysManager;
+	delete m_compManager;
+	delete m_entManager;
 }
 
 void Scene::EnableScene()
@@ -77,4 +83,9 @@ void Scene::EnableScene()
 
 void Scene::DisableScene()
 {
+}
+
+std::string Scene::GetName()
+{
+	return m_name;
 }

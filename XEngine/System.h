@@ -8,18 +8,12 @@
 #include "Component.h"
 #include "Entity.h"
 
-enum class SystemOrdering
-{
-	First, Any, Last
-};
-
-enum class SystemThreading
-{
-	EntityMainPostMain, EntityMultiPostMain, EntitySinglePostMain,
-	EntityMainPostMulti, EntityMultiPostMulti, EntitySinglePostMulti
-};
-
 using EventId = UniqueId;
+
+enum class PostOrdering
+{
+	First, Last, Anywhere
+};
 
 class SubsystemManager;
 class ISystem
@@ -30,9 +24,8 @@ public:
 
 	virtual std::string GetName() = 0;
 
-	virtual SystemThreading GetThreadingOptions() { return SystemThreading::EntityMultiPostMulti; }
-	virtual SystemOrdering GetSystemOrdering() { return SystemOrdering::Any; }
 	virtual int GetMaxPostThreadCount() { return 1; }
+	virtual bool IsPostMainThread() { return false; }
 
 	virtual std::vector<std::string> GetSystemsBefore() { return {}; }
 	virtual std::vector<std::string> GetSystemsAfter() { return {}; }
@@ -48,6 +41,9 @@ public:
 	inline void SetEnabled(bool enabled) { m_enabled = enabled; }
 	inline SubsystemManager *GetManager() { return m_manager; }
 	inline void SetSubsystemManager(SubsystemManager *manager) { m_manager = manager; }
+
+	UniqueId __filteringGroup;
+	std::atomic_int __jobsLeft;
 private:
 	bool m_enabled = false;
 	SubsystemManager *m_manager;
@@ -57,20 +53,16 @@ class Scene;
 class SystemManager
 {
 public:
-	XENGINEAPI SystemManager(Scene *scene);
-	XENGINEAPI ~SystemManager();
-	XENGINEAPI void AddSystem(std::string name);
-	XENGINEAPI std::vector<ISystem *> GetSystems();
+	SystemManager(Scene *scene) : m_scene(scene) {}
+	void AddSystem(std::string name);
+	std::vector<ISystem *>& GetSystems() { return m_systems; }
+	Scene *GetScene() { return m_scene; }
 private:
+	Scene *m_scene;
 	std::vector<ISystem *> m_systems;
 };
 
-// System Sorting Order
-// Organize threads of systems that depend on each other
-// Add threads of systems with possible race conditions i.e. overlapping component types
-// Fulfill threading requirements of the most selective system
-// Coalesce into the available threads as needed
-
+class SystemGraphSorter;
 class SubsystemManager
 {
 public:
@@ -82,15 +74,16 @@ public:
 	XENGINEAPI void RaiseEvent(Entity e, EventId eventId);
 
 	XENGINEAPI void AddSystem(std::string name);
-	XENGINEAPI void SetThreadsAvailable(int threads);
-	XENGINEAPI void InitializeSystemOrdering();
-	XENGINEAPI void ScheduleJobs();
-	XENGINEAPI void ExecuteJobs(int threadIndex, float deltaTime);
-	XENGINEAPI void StallTillDone();
-private:
-	int m_maxThreads;
-	SystemManager *m_sceneManager;
-	std::vector<ISystem *> m_systems;
 
-	concurrency::concurrent_unordered_multimap<UniqueId, EventId> m_raisedEvents;
+	XENGINEAPI void InitializeSystemOrdering(); // Run when the scene's collection of systems changes
+	XENGINEAPI void ScheduleJobs(); // Run every frame from one thread
+	XENGINEAPI void ExecuteJobs(int threadIndex, float deltaTime); // Run from every thread
+private:
+	std::vector<ISystem *> m_mainThreadSystems; // PostUpdate to be run only from main thread
+	std::vector<ISystem *> m_nonMainThreadSystems;
+
+	SystemGraphSorter *m_systemGraph = nullptr;
+	SystemManager *m_sceneManager = nullptr;
+
+	std::vector<ISystem *> m_systems;
 };

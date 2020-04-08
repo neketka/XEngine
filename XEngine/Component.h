@@ -17,19 +17,30 @@
 #include <concurrent_unordered_set.h>
 
 
-class ComponentBufferHolder
+class BufferedComponentHolder
 {
 public:
-	virtual ~ComponentBufferHolder() = 0;
+	virtual ~BufferedComponentHolder() = 0;
 	virtual void *GetMemory() = 0;
 	virtual int GetTotalSize() = 0;
 };
 
-template<class T>
-class TypedBufferHolder : public ComponentBufferHolder
+class Component
 {
 public:
-	virtual ~ComponentBufferHolder() {}
+	UniqueId ComponentTypeID;
+	UniqueId EntityID;
+	bool Initialized;
+	bool Deleted;
+private:
+	bool padding[2];
+};
+
+template<class T>
+class TypedBufferHolder : public BufferedComponentHolder
+{
+public:
+	virtual ~TypedBufferHolder() {}
 
 	virtual void *GetMemory() override
 	{
@@ -49,7 +60,7 @@ private:
 	std::vector<T> m_vec;
 };
 
-class ComponentBuffer
+class BufferedComponent : public Component
 {
 public:
 	void InitializeBufferStore();
@@ -57,11 +68,11 @@ public:
 	void *GetRawBufferData();
 	int GetTotalBufferSize();
 protected:
-	ComponentBufferHolder *m_holder;
+	BufferedComponentHolder *m_holder;
 };
 
 template<class T>
-class TypedComponentBuffer
+class TypedBufferedComponent : public BufferedComponent
 {
 public:
 	std::vector<T>& GetVector()
@@ -75,24 +86,13 @@ public:
 	}
 };
 
-class Component
-{
-public:
-	UniqueId ComponentTypeID;
-	UniqueId EntityID;
-	bool Initialized;
-	bool Deleted;
-private:
-	bool padding[2];
-};
-
 template<class T>
 class StaticComponentInfo
 {
 public:
-	static constexpr char *GetName()
+	static constexpr const char *GetName()
 	{
-		return typeid(T).name() + 5;
+		return typeid(T).name() + 6;
 	}
 	static constexpr int GetSize()
 	{
@@ -104,21 +104,32 @@ public:
 	}
 	static constexpr bool IsBuffered()
 	{
-		return std::is_base_of<ComponentBuffer, T>();
+		return std::is_base_of<BufferedComponent, T>();
 	}
 	static constexpr int GetComponentPointerOffset()
 	{
 		T *derived = reinterpret_cast<T *>(1);
 		Component *base = static_cast<Component *>(derived);
-		return reinterpret_cast<int *>(base) - reinterpret_cast<int *>(derived);
+		auto diff = reinterpret_cast<char *>(base) - reinterpret_cast<char *>(derived);
+		return diff;
 	}
+};
+
+template<class T>
+class BufferedComponentInfo
+{
+public:
 	static constexpr int GetBufferPointerOffset()
 	{
-		if (!IsBuffered())
-			return -1;
 		T *derived = reinterpret_cast<T *>(1);
-		Component *base = static_cast<ComponentBuffer *>(derived);
-		return reinterpret_cast<int *>(base) - reinterpret_cast<int *>(derived);
+		Component *base = static_cast<Component *>(derived);
+		auto diff1 = reinterpret_cast<char *>(base) - reinterpret_cast<char *>(derived);
+
+		BufferedComponent *buffcomp = reinterpret_cast<BufferedComponent *>(1);
+		Component *comp = static_cast<Component *>(buffcomp);
+		auto diff2 = reinterpret_cast<char *>(buffcomp) - reinterpret_cast<char *>(comp);
+		
+		return diff1 + diff2;
 	}
 };
 
@@ -137,8 +148,7 @@ class ComponentDataIterator
 {
 public:
 	ComponentDataIterator(std::vector<int> sizes, std::vector<void *> memoryBlocks, int first, int count)
-		: m_sizes(sizes), m_memoryBlocks(memoryBlocks), m_first(first), m_count(count), 
-		m_curComps(reinterpret_cast<Component **>(memoryBlocks.data()), reinterpret_cast<Component **>(memoryBlocks.data()) + memoryBlocks.size()) { }
+		: m_sizes(sizes), m_memoryBlocks(memoryBlocks), m_first(first), m_count(count), m_curComps(sizes.size()) { }
 
 	template<class T>
 	T *Next()
@@ -165,17 +175,21 @@ public:
 	{
 		return m_count;
 	}
+
+	void *UserPointer = nullptr;
+	bool UserFlag = false;
 private:
 	std::vector<int> m_sizes;
 	std::vector<void *> m_memoryBlocks;
-	int m_index = -1;
+	int m_index = 0;
 	int m_first;
 	int m_count;
-	std::vector<Component *> m_curComps;
+	std::vector<void *> m_curComps;
 	void AcquireNext()
 	{
 		for (int i = 0; i < m_sizes.size(); ++i)
-			m_curComps[i] += i * m_sizes[i];
+			m_curComps[i] = reinterpret_cast<char *>(m_memoryBlocks[i]) + (m_first + m_index) * m_sizes[i];
+		++m_index;
 	}
 };
 
@@ -201,7 +215,7 @@ public:
 	XENGINEAPI std::vector<Component *> GetComponentGroupData(ComponentGroupId componentGroup);
 	XENGINEAPI Component *GetComponentGroupData(ComponentGroupId componentGroup, ComponentTypeId id);
 	XENGINEAPI void RebuildComponentGroup(ComponentGroupId componentGroup, std::set<ComponentTypeId> components);
-	XENGINEAPI void ExecuteSingleThreadOps();
+	XENGINEAPI void ExecuteSingleThreadOps(); // Operations to be executed on one thread after no operations are done to components
 	XENGINEAPI std::vector<ComponentTypeId>& GetComponentTypes(ComponentGroupId id);
 
 	template<class T>
@@ -210,23 +224,23 @@ public:
 		return reinterpret_cast<T *>(static_cast<char *>(memory) + offset);
 	}
 private:
-	void AllocCompGroup(std::set<ComponentTypeId> components, bool copied, UniqueId id);
+	void AllocCompGroup(std::set<ComponentTypeId> components, bool moved, UniqueId id);
 	Scene *m_scene;
 
 	int m_componentChunkSize;
 	int m_componentDisposedChunkSize;
 
-	std::map<std::vector<ComponentTypeId>, UniqueId> m_filteringToId;
-	std::map<UniqueId, std::vector<ComponentTypeId>> m_idToFiltering;
-	std::map<UniqueId, UniqueId> m_filteringIdToInternalId;
+	std::map<std::vector<ComponentTypeId>, UniqueId> m_filteringToId; // Map from the ordered filtering groups to their ids
+	std::map<UniqueId, std::vector<ComponentTypeId>> m_idToFiltering; // Map from a filtering group id to its ordered components list
+	std::map<UniqueId, UniqueId> m_filteringIdToInternalId; // Map from an ordered filtering group id to its unordered equivalent's id
 
-	std::map<std::set<ComponentTypeId>, UniqueId> m_filteringCompsToInternalFiltering;
-	std::map<std::set<ComponentTypeId>, ComponentGroupType *> m_componentGroupTypes;
-	std::unordered_map<UniqueId, concurrency::concurrent_vector<ComponentGroupType *>> m_internalFilteringIdToComponentGroup;
+	std::map<std::set<ComponentTypeId>, UniqueId> m_filteringCompsToInternalFiltering; // Map from a set of components to an unordered filtering id
+	std::map<std::set<ComponentTypeId>, ComponentGroupType *> m_componentGroupTypes; // Map from a set of components to a matching component group type
+	std::unordered_map<UniqueId, concurrency::concurrent_vector<ComponentGroupType *>> m_internalFilteringIdToComponentGroup; // Map from an unordered filtering group to a list of component group types
 
-	concurrency::concurrent_unordered_map<UniqueId, std::pair<MemoryChunkObjectPointer, ComponentGroupType *>> m_componentGroups;
-	concurrency::concurrent_unordered_map<UniqueId, std::pair<MemoryChunkObjectPointer, ComponentGroupType *>> m_copiedComponentGroups;
+	concurrency::concurrent_unordered_map<UniqueId, std::pair<MemoryChunkObjectPointer, ComponentGroupType *>> m_componentGroups; // Map from a component group id to its pointer and component group type
+	concurrency::concurrent_unordered_map<UniqueId, std::pair<MemoryChunkObjectPointer, ComponentGroupType *>> m_movedComponentGroups; // Map from a component group about to be moved id to its pointer and component group type
 
-	concurrency::concurrent_unordered_set<UniqueId> m_moveToDisposed;
-	std::vector<UniqueId> m_disposed;
+	concurrency::concurrent_unordered_set<UniqueId> m_moveToDisposed; // Components about to be disposed by systems
+	std::vector<UniqueId> m_disposed; // Components to be disposed by deallocators
 };

@@ -38,9 +38,10 @@ public:
 		info.Name = StaticComponentInfo<T>::GetName();
 		info.Size = StaticComponentInfo<T>::GetSize();
 		info.Identifier = StaticComponentInfo<T>::GetIdentifier();
-		info.Buffered = StaticComponentInfo<T>::IsBuffered();
+		info.Buffered = StaticComponentInfo<T>::IsBuffered(); // Has a buffer
 		info.ComponentOffset = StaticComponentInfo<T>::GetComponentPointerOffset();
-		info.BufferOffset = StaticComponentInfo<T>::GetBufferPointerOffset();
+		if (info.Buffered)
+			info.BufferOffset = BufferedComponentInfo<T>::GetBufferPointerOffset();
 		m_components[id] = info;
 		m_componentsByName[info.Name] = id;
 	}
@@ -49,10 +50,9 @@ public:
 	XENGINEAPI int GetComponentSize(UniqueId id);
 	XENGINEAPI int GetComponentPointerOffset(UniqueId id);
 	XENGINEAPI int GetBufferPointerOffset(UniqueId id);
-	XENGINEAPI bool IsComponentBuffered(UniqueId id);
+	XENGINEAPI bool IsBufferedComponented(UniqueId id);
 	inline std::map<UniqueId, InternalTypeInfo>& GetComponentMap() { return m_components; }
 private:
-
 	std::map<std::string, UniqueId> m_events;
 	std::map<UniqueId, InternalTypeInfo> m_components;
 	std::map<std::string, UniqueId> m_componentsByName;
@@ -62,16 +62,19 @@ private:
 class Scene
 {
 public:
-	XENGINEAPI Scene();
+	XENGINEAPI Scene(std::string name);
 	XENGINEAPI ~Scene();
 
 	XENGINEAPI void EnableScene();
 	XENGINEAPI void DisableScene();
 
+	XENGINEAPI std::string GetName();
+
 	inline SystemManager *GetSystemManager() { return m_sysManager; }
 	inline ComponentManager *GetComponentManager() { return m_compManager; }
 	inline EntityManager *GetEntityManager() { return m_entManager; }
 private:
+	std::string m_name;
 	bool m_enabled = false;
 	SystemManager *m_sysManager;
 	ComponentManager *m_compManager;

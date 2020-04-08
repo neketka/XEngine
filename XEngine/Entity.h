@@ -18,17 +18,17 @@ public:
 	template<class T>
 	T *GetComponent()
 	{
-		return dynamic_cast<T *>(GetComponent(StaticComponentInfo<T>::GetIdentifier()));
+		return dynamic_cast<T *>(GetComponent(StaticComponentInfo<T>::GetIdentifier())); // Get component by id
 	}
 	template<class T>
 	void AddComponent()
 	{
-		AddComponent(StaticComponentInfo<T>::GetIdentifier());
+		AddComponent(StaticComponentInfo<T>::GetIdentifier()); // Add component by id
 	}
 	template<class T>
 	void RemoveComponent()
 	{
-		RemoveComponent(StaticComponentInfo<T>::GetIdentifier());
+		RemoveComponent(StaticComponentInfo<T>::GetIdentifier()); // Remove component by id
 	}
 	EntityManager *GetManager()
 	{
@@ -50,6 +50,7 @@ class EntityManager
 public:
 	XENGINEAPI EntityManager(Scene *scene);
 	XENGINEAPI Entity CreateEntity(std::vector<std::string> components);
+	XENGINEAPI Entity CreateEntity(std::set<ComponentTypeId> components);
 	XENGINEAPI void DestroyEntity(EntityId id);
 	XENGINEAPI Entity GetEntityByComponent(EntityId id, ComponentTypeId componentId);
 	XENGINEAPI void AddComponentToEntity(EntityId id, ComponentTypeId componentId);

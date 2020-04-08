@@ -22,6 +22,15 @@
       <UniqueIdentifier>{3ff55a2c-787f-40ed-b7ea-6ca672b5d8eb}</UniqueIdentifier>
       <Extensions>h;hh;hpp;hxx;hm;inl;inc;ipp;xsd;cpp</Extensions>
     </Filter>
+    <Filter Include="Hardware Interfaces">
+      <UniqueIdentifier>{5079bb04-ba80-4182-bfe2-9f3ac547f068}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Test">
+      <UniqueIdentifier>{1f6911a0-d2f0-4500-b2c1-24d16bf2bce9}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Interface Impl">
+      <UniqueIdentifier>{afcd95b8-fb5b-4e3f-9ab9-5d7a5c07a3a8}</UniqueIdentifier>
+    </Filter>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="framework.h">
@@ -93,6 +102,51 @@
     <ClInclude Include="SystemGraphSorter.h">
       <Filter>ECS</Filter>
     </ClInclude>
+    <ClInclude Include="HardwareInterfaces.h">
+      <Filter>Hardware Interfaces</Filter>
+    </ClInclude>
+    <ClInclude Include="VideoRecordingInterface.h">
+      <Filter>Hardware Interfaces</Filter>
+    </ClInclude>
+    <ClInclude Include="AudioRenderingInterface.h">
+      <Filter>Hardware Interfaces</Filter>
+    </ClInclude>
+    <ClInclude Include="AudioRecordingInterface.h">
+      <Filter>Hardware Interfaces</Filter>
+    </ClInclude>
+    <ClInclude Include="KeyboardInterface.h">
+      <Filter>Hardware Interfaces</Filter>
+    </ClInclude>
+    <ClInclude Include="MouseInterface.h">
+      <Filter>Hardware Interfaces</Filter>
+    </ClInclude>
+    <ClInclude Include="NetworkInterface.h">
+      <Filter>Hardware Interfaces</Filter>
+    </ClInclude>
+    <ClInclude Include="JoystickInterface.h">
+      <Filter>Hardware Interfaces</Filter>
+    </ClInclude>
+    <ClInclude Include="DisplayInterface.h">
+      <Filter>Hardware Interfaces</Filter>
+    </ClInclude>
+    <ClInclude Include="WorkerManager.h">
+      <Filter>Engine</Filter>
+    </ClInclude>
+    <ClInclude Include="SDLInterface.h">
+      <Filter>Interface Impl</Filter>
+    </ClInclude>
+    <ClInclude Include="TestSystem.h">
+      <Filter>Test</Filter>
+    </ClInclude>
+    <ClInclude Include="CommonInterface.h">
+      <Filter>Hardware Interfaces</Filter>
+    </ClInclude>
+    <ClInclude Include="GraphicsDefs.h">
+      <Filter>Hardware Interfaces</Filter>
+    </ClInclude>
+    <ClInclude Include="GraphicsEnums.h">
+      <Filter>Hardware Interfaces</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="Buffer.cpp">
@@ -154,6 +208,15 @@
     </ClCompile>
     <ClCompile Include="SystemGraphSorter.cpp">
       <Filter>ECS</Filter>
+    </ClCompile>
+    <ClCompile Include="WorkerManager.cpp">
+      <Filter>Engine</Filter>
+    </ClCompile>
+    <ClCompile Include="SDLInterface.cpp">
+      <Filter>Interface Impl</Filter>
+    </ClCompile>
+    <ClCompile Include="TestSystem.cpp">
+      <Filter>Test</Filter>
     </ClCompile>
   </ItemGroup>
   <ItemGroup>

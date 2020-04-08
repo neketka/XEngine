@@ -76,13 +76,15 @@
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">
     <LinkIncremental>true</LinkIncremental>
     <IncludePath>$(SolutionDir)\Dep\SDL2-2.0.10\include;$(SolutionDir)\Dep\glew-2.0.0-win32\glew-2.0.0\include;$(SolutionDir)\Dep\glm\include;$(IncludePath)</IncludePath>
-    <LibraryPath>$(SolutionDir)\Dep\glew-2.0.0-win32\glew-2.0.0\lib\Release\x64;$(SolutionDir)\XEngine\Dep\SDL2-2.0.10\lib\x64;$(LibraryPath)</LibraryPath>
+    <LibraryPath>$(SolutionDir)\Dep\glew-2.0.0-win32\glew-2.0.0\lib\Release\x64;$(SolutionDir)\Dep\SDL2-2.0.10\lib\x64;$(LibraryPath)</LibraryPath>
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">
     <LinkIncremental>false</LinkIncremental>
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|x64'">
     <LinkIncremental>false</LinkIncremental>
+    <IncludePath>$(SolutionDir)\Dep\SDL2-2.0.10\include;$(SolutionDir)\Dep\glew-2.0.0-win32\glew-2.0.0\include;$(SolutionDir)\Dep\glm\include;$(IncludePath)</IncludePath>
+    <LibraryPath>$(SolutionDir)\Dep\glew-2.0.0-win32\glew-2.0.0\lib\Release\x64;$(SolutionDir)\Dep\SDL2-2.0.10\lib\x64;$(LibraryPath)</LibraryPath>
   </PropertyGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">
     <ClCompile>
@@ -106,16 +108,17 @@
       <WarningLevel>Level3</WarningLevel>
       <Optimization>Disabled</Optimization>
       <SDLCheck>true</SDLCheck>
-      <PreprocessorDefinitions>_DEBUG;XENGINE_EXPORTS;_WINDOWS;_USRDLL;%(PreprocessorDefinitions)</PreprocessorDefinitions>
+      <PreprocessorDefinitions>_DEBUG;XENGINE_EXPORTS;_WINDOWS;_USRDLL;_SILENCE_CXX17_OLD_ALLOCATOR_MEMBERS_DEPRECATION_WARNING;%(PreprocessorDefinitions)</PreprocessorDefinitions>
       <ConformanceMode>true</ConformanceMode>
       <PrecompiledHeaderFile>pch.h</PrecompiledHeaderFile>
       <LanguageStandard>stdcpp17</LanguageStandard>
+      <MultiProcessorCompilation>true</MultiProcessorCompilation>
     </ClCompile>
     <Link>
       <SubSystem>Windows</SubSystem>
       <GenerateDebugInformation>true</GenerateDebugInformation>
       <EnableUAC>false</EnableUAC>
-      <AdditionalDependencies>glew32.lib;SDL2.lib;%(AdditionalDependencies)</AdditionalDependencies>
+      <AdditionalDependencies>opengl32.lib;glew32.lib;SDL2.lib;%(AdditionalDependencies)</AdditionalDependencies>
     </Link>
   </ItemDefinitionGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">
@@ -146,9 +149,13 @@
       <FunctionLevelLinking>true</FunctionLevelLinking>
       <IntrinsicFunctions>true</IntrinsicFunctions>
       <SDLCheck>true</SDLCheck>
-      <PreprocessorDefinitions>NDEBUG;XENGINE_EXPORTS;_WINDOWS;_USRDLL;%(PreprocessorDefinitions)</PreprocessorDefinitions>
+      <PreprocessorDefinitions>NDEBUG;XENGINE_EXPORTS;_WINDOWS;_USRDLL;_SILENCE_CXX17_OLD_ALLOCATOR_MEMBERS_DEPRECATION_WARNING;%(PreprocessorDefinitions)</PreprocessorDefinitions>
       <ConformanceMode>true</ConformanceMode>
       <PrecompiledHeaderFile>pch.h</PrecompiledHeaderFile>
+      <MultiProcessorCompilation>true</MultiProcessorCompilation>
+      <LanguageStandard>stdcpp17</LanguageStandard>
+      <FavorSizeOrSpeed>Speed</FavorSizeOrSpeed>
+      <EnableEnhancedInstructionSet>AdvancedVectorExtensions2</EnableEnhancedInstructionSet>
     </ClCompile>
     <Link>
       <SubSystem>Windows</SubSystem>
@@ -156,12 +163,15 @@
       <OptimizeReferences>true</OptimizeReferences>
       <GenerateDebugInformation>true</GenerateDebugInformation>
       <EnableUAC>false</EnableUAC>
+      <AdditionalDependencies>opengl32.lib;glew32.lib;SDL2.lib;%(AdditionalDependencies)</AdditionalDependencies>
     </Link>
   </ItemDefinitionGroup>
   <ItemGroup>
+    <ClInclude Include="AudioRecordingInterface.h" />
     <ClInclude Include="Buffer.h" />
     <ClInclude Include="ChunkAllocator.h" />
     <ClInclude Include="CommandBuffer.h" />
+    <ClInclude Include="CommonInterface.h" />
     <ClInclude Include="Component.h" />
     <ClInclude Include="ECS.h" />
     <ClInclude Include="Entity.h" />
@@ -169,18 +179,31 @@
     <ClInclude Include="Framebuffer.h" />
     <ClInclude Include="framework.h" />
     <ClInclude Include="GLResource.h" />
+    <ClInclude Include="GraphicsDefs.h" />
+    <ClInclude Include="GraphicsEnums.h" />
+    <ClInclude Include="HardwareInterfaces.h" />
+    <ClInclude Include="AudioRenderingInterface.h" />
+    <ClInclude Include="JoystickInterface.h" />
+    <ClInclude Include="KeyboardInterface.h" />
+    <ClInclude Include="MouseInterface.h" />
+    <ClInclude Include="NetworkInterface.h" />
     <ClInclude Include="pch.h" />
     <ClInclude Include="Pipeline.h" />
     <ClInclude Include="Quad.h" />
     <ClInclude Include="Sampler.h" />
+    <ClInclude Include="SDLInterface.h" />
     <ClInclude Include="Shader.h" />
     <ClInclude Include="ShaderConstants.h" />
     <ClInclude Include="ShaderDescriptor.h" />
     <ClInclude Include="System.h" />
     <ClInclude Include="SystemGraphSorter.h" />
+    <ClInclude Include="TestSystem.h" />
     <ClInclude Include="Texture.h" />
     <ClInclude Include="UUID.h" />
     <ClInclude Include="VertexArray.h" />
+    <ClInclude Include="VideoRecordingInterface.h" />
+    <ClInclude Include="DisplayInterface.h" />
+    <ClInclude Include="WorkerManager.h" />
     <ClInclude Include="XEngine.h" />
   </ItemGroup>
   <ItemGroup>
@@ -197,17 +220,22 @@
       <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">Create</PrecompiledHeader>
       <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">Create</PrecompiledHeader>
       <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Release|x64'">Create</PrecompiledHeader>
+      <MultiProcessorCompilation Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">false</MultiProcessorCompilation>
+      <MultiProcessorCompilation Condition="'$(Configuration)|$(Platform)'=='Release|x64'">false</MultiProcessorCompilation>
     </ClCompile>
     <ClCompile Include="Pipeline.cpp" />
     <ClCompile Include="Sampler.cpp" />
+    <ClCompile Include="SDLInterface.cpp" />
     <ClCompile Include="Shader.cpp" />
     <ClCompile Include="ShaderConstants.cpp" />
     <ClCompile Include="ShaderDescriptor.cpp" />
     <ClCompile Include="System.cpp" />
     <ClCompile Include="SystemGraphSorter.cpp" />
+    <ClCompile Include="TestSystem.cpp" />
     <ClCompile Include="Texture.cpp" />
     <ClCompile Include="UUID.cpp" />
     <ClCompile Include="VertexArray.cpp" />
+    <ClCompile Include="WorkerManager.cpp" />
     <ClCompile Include="XEngine.cpp" />
   </ItemGroup>
   <ItemGroup>

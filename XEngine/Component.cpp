@@ -1,25 +1,28 @@
 #include "pch.h"
 #include <algorithm>
 
-ComponentManager::ComponentManager(Scene *scene)
+ComponentManager::ComponentManager(Scene *scene) : m_scene(scene)
 {
-	m_componentChunkSize = 32;
-	m_componentDisposedChunkSize = 8;
-	m_scene = scene;
+	m_componentChunkSize = 32; // Set size of chunk for components
+	m_componentDisposedChunkSize = 8; // Set size of chunk for disposed components
 }
 
 ComponentManager::~ComponentManager()
 {
 	for (auto pair : m_componentGroupTypes)
 	{
-		delete pair.second;
+		for (MemoryChunkAllocator& alloc : pair.second->Allocators)
+			alloc.CleanupAllocator();
+		for (MemoryChunkAllocator& alloc : pair.second->DisposedAllocators)
+			alloc.CleanupAllocator();
+		delete pair.second; // Delete all component group types
 	}
 }
 
 void ComponentManager::InitializeFilteringGroups()
 {
 	ECSRegistrar *registrar = XEngine::GetInstance().GetECSRegistrar();
-	for (auto comp : registrar->GetComponentMap())
+	for (auto comp : registrar->GetComponentMap()) // Add filtering group for each possible component alone
 	{
 		AddFilteringGroup({ comp.first });
 	}
@@ -27,21 +30,22 @@ void ComponentManager::InitializeFilteringGroups()
 
 FilteringGroupId ComponentManager::AddFilteringGroup(std::vector<ComponentTypeId> components)
 {
-	auto iter = m_filteringToId.find(components);
-	if (iter == m_filteringToId.end())
+	auto iter = m_filteringToId.find(components); // Iterator for the filering group
+	if (iter == m_filteringToId.end()) // If filering group does not exist
 	{
 		ECSRegistrar *registrar = XEngine::GetInstance().GetECSRegistrar();
-		std::set<UniqueId> setComp(components.begin(), components.end());
-		auto cgIter = m_filteringCompsToInternalFiltering.find(setComp);
+		std::set<UniqueId> setComp(components.begin(), components.end()); // Set of necessary components
+
+		auto cgIter = m_filteringCompsToInternalFiltering.find(setComp); // Find the internal filtering group associated with that set of components
 
 		UniqueId internalId;
 		if (cgIter == m_filteringCompsToInternalFiltering.end())
 		{
-			internalId = m_filteringCompsToInternalFiltering[setComp] = GenerateID();
-			auto& vec = m_internalFilteringIdToComponentGroup[internalId] = concurrency::concurrent_vector<ComponentGroupType *>();
+			internalId = m_filteringCompsToInternalFiltering[setComp] = GenerateID(); // Generate new unordered filtering group id
+			auto& vec = m_internalFilteringIdToComponentGroup[internalId] = concurrency::concurrent_vector<ComponentGroupType *>(); // Create list of component group types associated with this unordered filtering group
 			for (auto compGroup : m_componentGroupTypes)
 			{
-				if (std::includes(compGroup.first.begin(), compGroup.first.end(), setComp.begin(), setComp.end()))
+				if (std::includes(compGroup.first.begin(), compGroup.first.end(), setComp.begin(), setComp.end())) // Is this unordered filtering group contained in this component group type
 				{
 					vec.push_back(compGroup.second);
 				}
@@ -49,9 +53,9 @@ FilteringGroupId ComponentManager::AddFilteringGroup(std::vector<ComponentTypeId
 		}
 		else internalId = cgIter->second;
 
-		UniqueId id = m_filteringToId[components] = GenerateID();
-		m_idToFiltering[id] = components;
-		m_filteringIdToInternalId[id] = cgIter->second;
+		UniqueId id = m_filteringToId[components] = GenerateID(); // Generate new filtering group id
+		m_idToFiltering[id] = components; // Set the component order associated with the filtering group
+		m_filteringIdToInternalId[id] = internalId; // Set the unordered filtering group associated with this filtering group
 		return id;
 	}
 	return iter->second;
@@ -61,20 +65,20 @@ std::vector<ComponentDataIterator> *ComponentManager::GetFilteringGroup(Filterin
 {
 	ECSRegistrar *registrar = XEngine::GetInstance().GetECSRegistrar();
 	
-	std::vector<ComponentDataIterator> *filtering = new std::vector<ComponentDataIterator>;
-	std::vector<UniqueId>& order = m_idToFiltering[filteringGroup];
-	auto& compTypes = m_internalFilteringIdToComponentGroup[m_filteringIdToInternalId[filteringGroup]];
+	std::vector<ComponentDataIterator> *filtering = new std::vector<ComponentDataIterator>; // Prepare a list for the iterators
+	std::vector<UniqueId>& order = m_idToFiltering[filteringGroup]; // Get the order of the components
+	auto& compTypes = m_internalFilteringIdToComponentGroup[m_filteringIdToInternalId[filteringGroup]]; // Get the types of components
 	for (ComponentGroupType *type : compTypes)
 	{
-		int chunkCount = type->Allocators[0].GetAllChunks().size();
+		int chunkCount = (disposed ? type->DisposedAllocators[0] : type->Allocators[0]).GetActiveChunkCount(); // Get the chunk count
 		for (int chunk = 0; chunk < chunkCount; ++chunk)
 		{
-			std::vector<void *> compBlocks(type->ComponentTypes.size());
-			std::vector<int> sizes(type->ComponentTypes.size());
+			std::vector<void *> compBlocks(type->ComponentTypes.size()); // Component pointers
+			std::vector<int> sizes(type->ComponentTypes.size()); // Component sizes
 
 			for (int comp = 0; comp < type->ComponentTypes.size(); ++comp)
 			{
-				auto allocator = (disposed ? type->CompTypeToDisposedAllocator : type->CompTypeToAllocator)[order[comp]];
+				auto allocator = (disposed ? type->CompTypeToDisposedAllocator : type->CompTypeToAllocator)[order[comp]]; // Find the correct allocator for this usage
 				compBlocks[comp] = allocator->GetAllChunks()[chunk].Memory;
 				sizes[comp] = allocator->GetPerObjectSize();
 			}
@@ -90,25 +94,25 @@ std::vector<ComponentDataIterator> *ComponentManager::GetFilteringGroup(Filterin
 ComponentGroupId ComponentManager::GetFirstComponentGroupWithType(ComponentTypeId id)
 {
 	ECSRegistrar *registrar = XEngine::GetInstance().GetECSRegistrar();
-	UniqueId filtering = m_filteringCompsToInternalFiltering[{id}];
+	UniqueId filtering = m_filteringCompsToInternalFiltering[{ id }]; // Find unordered filtering group for this component
 	auto groups = m_internalFilteringIdToComponentGroup[filtering];
 	for (ComponentGroupType *type : groups)
 	{
-		if (type->Allocators[0].GetAllChunks().size() != 0)
+		if (type->Allocators[0].GetActiveChunkCount() != 0) // If there are any populated chunks
 		{
-			Component *comp = Upcast<Component>(type->Allocators[0].GetAllChunks()[0].Memory,
+			Component *comp = Upcast<Component>(type->Allocators[0].GetAllChunks()[0].Memory, // Cast pointer from Derived to Component
 				registrar->GetComponentPointerOffset(type->ComponentTypes[0]));
 			return comp->EntityID;
 		}
 	}
-	return 0;
+	return 0; // None found
 }
 
 ComponentGroupId ComponentManager::AllocateComponentGroup(std::set<ComponentTypeId> components)
 {
 	ComponentGroupId id = GenerateID();
 
-	AllocCompGroup(components, false, id);
+	AllocCompGroup(components, false, id); // Allocate new, unmoved component group
 
 	return id;
 }
@@ -116,28 +120,28 @@ ComponentGroupId ComponentManager::AllocateComponentGroup(std::set<ComponentType
 ComponentGroupType *ComponentManager::GetComponentGroupType(std::set<ComponentTypeId> components)
 {
 	auto iter = m_componentGroupTypes.find(components);
-	if (iter == m_componentGroupTypes.end())
+	if (iter == m_componentGroupTypes.end()) // Component group type not found
 	{
 		ECSRegistrar *registrar = XEngine::GetInstance().GetECSRegistrar();
 
-		ComponentGroupType *type = m_componentGroupTypes[components] = new ComponentGroupType;
+		ComponentGroupType *type = m_componentGroupTypes[components] = new ComponentGroupType; // Create new type for these components
 		type->ChunkSize = m_componentChunkSize;
-		type->ComponentTypes = std::vector<UniqueId>(components.begin(), components.end());
-		type->Allocators.reserve(type->ComponentTypes.size());
+		type->ComponentTypes = std::vector<UniqueId>(components.begin(), components.end()); // Copy the components to an internal vector
+		type->Allocators.reserve(type->ComponentTypes.size()); // Preallocate space for vectors
 		type->DisposedAllocators.reserve(type->ComponentTypes.size());
 		for (UniqueId id : type->ComponentTypes)
 		{
 			int size = registrar->GetComponentSize(id);
-			type->Allocators.push_back(MemoryChunkAllocator(type->ChunkSize, size));
+			type->Allocators.push_back(MemoryChunkAllocator(type->ChunkSize, size)); // Create allocators for the type
 			type->DisposedAllocators.push_back(MemoryChunkAllocator(m_componentDisposedChunkSize, size));
 			type->CompTypeToAllocator[id] = &type->Allocators.back();
 			type->CompTypeToDisposedAllocator[id] = &type->DisposedAllocators.back();
 		}
 		for (auto pair : m_filteringCompsToInternalFiltering)
 		{
-			if (std::includes(components.begin(), components.end(), pair.first.begin(), pair.first.end()))
+			if (std::includes(components.begin(), components.end(), pair.first.begin(), pair.first.end())) // Do any filtering groups use this component group
 			{
-				m_internalFilteringIdToComponentGroup[pair.second].push_back(type);
+				m_internalFilteringIdToComponentGroup[pair.second].push_back(type); // If so add this group to the unordered filtering group
 			}
 		}
 		return type;
@@ -147,7 +151,7 @@ ComponentGroupType *ComponentManager::GetComponentGroupType(std::set<ComponentTy
 
 void ComponentManager::DeleteComponentGroup(ComponentGroupId id)
 {
-	m_moveToDisposed.insert(id);
+	m_moveToDisposed.insert(id); // Stage for disposal loop
 }
 
 void ComponentManager::CopyComponentData(ComponentGroupId dest, ComponentGroupId src, ComponentTypeId compId)
@@ -157,7 +161,7 @@ void ComponentManager::CopyComponentData(ComponentGroupId dest, ComponentGroupId
 	auto destPair = m_componentGroups[dest];
 	auto srcPair = m_componentGroups[src];
 
-	std::memcpy(destPair.second->CompTypeToAllocator[compId]->GetObjectMemory(destPair.first),
+	std::memcpy(destPair.second->CompTypeToAllocator[compId]->GetObjectMemory(destPair.first), // Copy memory to memory
 		srcPair.second->CompTypeToAllocator[compId]->GetObjectMemory(srcPair.first), registrar->GetComponentSize(compId));
 }
 
@@ -171,11 +175,11 @@ std::vector<Component *> ComponentManager::GetComponentGroupData(ComponentGroupI
 	ECSRegistrar *registrar = XEngine::GetInstance().GetECSRegistrar();
 
 	auto pair = m_componentGroups[componentGroup];
-	std::vector<Component *> data(pair.second->ComponentTypes.size());
+	std::vector<Component *> data(pair.second->ComponentTypes.size()); // Preallocate with size
 
 	for (int i = 0; i < pair.second->ComponentTypes.size(); ++i)
 	{
-		data[i] = Upcast<Component>(pair.second->Allocators[i].GetObjectMemory(pair.first), 
+		data[i] = Upcast<Component>(pair.second->Allocators[i].GetObjectMemory(pair.first), // Cast from Derived to Component 
 			registrar->GetComponentPointerOffset(pair.second->ComponentTypes[i]));
 	}
 
@@ -188,12 +192,13 @@ Component *ComponentManager::GetComponentGroupData(ComponentGroupId componentGro
 	Component *ret = nullptr;
 
 	auto pair = m_componentGroups[componentGroup];
-	auto copiedPair = m_componentGroups[componentGroup];
-	if (std::find(pair.second->ComponentTypes.begin(), pair.second->ComponentTypes.end(), id) != pair.second->ComponentTypes.end())
+	auto movedPair = m_componentGroups[componentGroup];
+
+	if (std::find(pair.second->ComponentTypes.begin(), pair.second->ComponentTypes.end(), id) != pair.second->ComponentTypes.end()) // Is it in the non-moved components
 		ret = Upcast<Component>(pair.second->CompTypeToAllocator[id]->GetObjectMemory(pair.first),
 			registrar->GetComponentPointerOffset(id));
-	else if (std::find(copiedPair.second->ComponentTypes.begin(), copiedPair.second->ComponentTypes.end(), id) != copiedPair.second->ComponentTypes.end())
-		ret = Upcast<Component>(copiedPair.second->CompTypeToAllocator[id]->GetObjectMemory(copiedPair.first),
+	else if (std::find(movedPair.second->ComponentTypes.begin(), movedPair.second->ComponentTypes.end(), id) != movedPair.second->ComponentTypes.end()) // Or is it in the moved components
+		ret = Upcast<Component>(movedPair.second->CompTypeToAllocator[id]->GetObjectMemory(movedPair.first),
 			registrar->GetComponentPointerOffset(id));
 
 	return ret;
@@ -201,37 +206,37 @@ Component *ComponentManager::GetComponentGroupData(ComponentGroupId componentGro
 
 void ComponentManager::RebuildComponentGroup(ComponentGroupId componentGroup, std::set<ComponentTypeId> components)
 {
-	AllocCompGroup(components, true, componentGroup);
+	AllocCompGroup(components, true, componentGroup); // Allocate a moved component group
 }
 
 void ComponentManager::ExecuteSingleThreadOps()
 {
 	ECSRegistrar *registrar = XEngine::GetInstance().GetECSRegistrar();
-	for (auto& pair : m_copiedComponentGroups) 
+	for (auto& pair : m_movedComponentGroups) 
 	{
 		auto originalPair = m_componentGroups[pair.first];
-		for (ComponentTypeId comp : pair.second.second->ComponentTypes)
+		for (ComponentTypeId comp : pair.second.second->ComponentTypes) // Loop through all components in the original component group
 		{
-			std::memcpy(pair.second.second->CompTypeToAllocator[comp]->GetObjectMemory(pair.second.first),
+			std::memcpy(pair.second.second->CompTypeToAllocator[comp]->GetObjectMemory(pair.second.first), // Copy memory from original to moved
 				originalPair.second->CompTypeToAllocator[comp]->GetObjectMemory(originalPair.first), registrar->GetComponentSize(comp));
-			originalPair.second->CompTypeToAllocator[comp]->FreeObject(originalPair.first);
+			originalPair.second->CompTypeToAllocator[comp]->FreeObject(originalPair.first); // Destroy original component group
 		}
 		m_componentGroups[pair.first] = pair.second;
 	}
-	m_copiedComponentGroups.clear();
+	m_movedComponentGroups.clear(); // Clear "to be moved"
 	for (UniqueId id : m_disposed)
 	{
 		auto pair = m_componentGroups[id];
 		for (int i = 0; i < pair.second->ComponentTypes.size(); ++i)
 		{
-			if (registrar->IsComponentBuffered(pair.second->ComponentTypes[i]))
-				Upcast<ComponentBuffer>(pair.second->DisposedAllocators[i].GetObjectMemory(pair.first),
+			if (registrar->IsBufferedComponented(pair.second->ComponentTypes[i]))
+				Upcast<BufferedComponent>(pair.second->DisposedAllocators[i].GetObjectMemory(pair.first), // Destroy buffer if necessary
 					registrar->GetBufferPointerOffset(pair.second->ComponentTypes[i]))->DestroyBufferStore();
-			pair.second->DisposedAllocators[i].FreeObject(pair.first);
+			pair.second->DisposedAllocators[i].FreeObject(pair.first); // Dispose of the cleaned up object
 		}
-		m_componentGroups.unsafe_erase(id);
+		m_componentGroups.unsafe_erase(id); // Erase component group from list
 	}
-	m_disposed.clear();
+	m_disposed.clear(); // Clear "disposed"
 	for (UniqueId id : m_moveToDisposed)
 	{
 		auto& pair = m_componentGroups[id];
@@ -242,13 +247,14 @@ void ComponentManager::ExecuteSingleThreadOps()
 			MemoryChunkAllocator& dealloc = pair.second->DisposedAllocators[i];
 
 			ptr = dealloc.AllocateObject();
+			// Move the component group to "to be disposed" for systems to clean up and to be deleted later
 			std::memcpy(dealloc.GetObjectMemory(ptr), alloc.GetObjectMemory(pair.first), alloc.GetPerObjectSize());
-			alloc.FreeObject(pair.first);
+			alloc.FreeObject(pair.first); // Delete the object from the regular component groups
 		}
 		pair.first = ptr;
 		m_disposed.push_back(id);
 	}
-	m_moveToDisposed.clear();
+	m_moveToDisposed.clear(); // Clear "to be disposed"
 }
 
 std::vector<ComponentTypeId>& ComponentManager::GetComponentTypes(ComponentGroupId id)
@@ -256,7 +262,7 @@ std::vector<ComponentTypeId>& ComponentManager::GetComponentTypes(ComponentGroup
 	return m_componentGroups[id].second->ComponentTypes;
 }
 
-void ComponentManager::AllocCompGroup(std::set<ComponentTypeId> components, bool copied, UniqueId id)
+void ComponentManager::AllocCompGroup(std::set<ComponentTypeId> components, bool moved, UniqueId id)
 {
 	ECSRegistrar *registrar = XEngine::GetInstance().GetECSRegistrar();
 	ComponentGroupType *type = GetComponentGroupType(components);
@@ -264,37 +270,37 @@ void ComponentManager::AllocCompGroup(std::set<ComponentTypeId> components, bool
 	for (int i = 0; i < type->ComponentTypes.size(); ++i)
 	{
 		ptr = type->Allocators[i].AllocateObject();
-		void *memory = type->Allocators[i].GetObjectMemory(ptr);
+		void *memory = type->Allocators[i].GetObjectMemory(ptr); // Get component memory
 
 		Component *comp = Upcast<Component>(memory, registrar->GetComponentPointerOffset(type->ComponentTypes[i]));
 		comp->ComponentTypeID = type->ComponentTypes[i];
 		comp->EntityID = id;
-		comp->Initialized = false;
+		comp->Initialized = false; // Set optional initialization flag
 
-		if (registrar->IsComponentBuffered(comp->ComponentTypeID))
-			Upcast<ComponentBuffer>(memory, registrar->GetBufferPointerOffset(comp->ComponentTypeID))->InitializeBufferStore();
+		if (registrar->IsBufferedComponented(comp->ComponentTypeID)) // Initialize buffer if necessary
+			Upcast<BufferedComponent>(memory, registrar->GetBufferPointerOffset(comp->ComponentTypeID))->InitializeBufferStore();
 	}
 
-	(copied ? m_copiedComponentGroups[id] : m_componentGroups[id]) = std::make_pair(ptr, type);
+	(moved ? m_movedComponentGroups[id] : m_componentGroups[id]) = std::make_pair(ptr, type);
 }
 
-void ComponentBuffer::InitializeBufferStore()
+void BufferedComponent::InitializeBufferStore()
 {
 	m_holder = nullptr;
 }
 
-void ComponentBuffer::DestroyBufferStore()
+void BufferedComponent::DestroyBufferStore()
 {
 	if (m_holder)
 		delete m_holder;
 }
 
-void *ComponentBuffer::GetRawBufferData()
+void *BufferedComponent::GetRawBufferData()
 {
 	return m_holder->GetMemory();
 }
 
-int ComponentBuffer::GetTotalBufferSize()
+int BufferedComponent::GetTotalBufferSize()
 {
 	return m_holder->GetTotalSize();
 }
