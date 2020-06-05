@@ -1,0 +1,86 @@
+/*  GIMP header image file format (RGB): D:\Nikita\Documents\testi.h  */
+
+static unsigned int testwidth = 35;
+static unsigned int testheight = 32;
+
+/*  Call this macro repeatedly.  After each use, the pixel data can be extracted  */
+
+#define HEADER_PIXEL(data,pixel) {\
+pixel[0] = (((data[0] - 33) << 2) | ((data[1] - 33) >> 4)); \
+pixel[1] = ((((data[1] - 33) & 0xF) << 4) | ((data[2] - 33) >> 2)); \
+pixel[2] = ((((data[2] - 33) & 0x3) << 6) | ((data[3] - 33))); \
+pixel[3] = 255; \
+data += 4; \
+}
+static const char *header_data =
+"58;O5(;O5(;P4X7P4X7P4H7P4H3Q483Q4(/Q4(/Q3X+Q3X'Q3H'Q38'Q38#R3(#W"
+"3'CNG'&F?W#\"38L'5Z(;5YP24)(,3)4:1XT:17\\)17GZ17CP1';K0W7I0W3H0G/G"
+"07+G07'F0'#E6(OX5XKX5XKX5HKX58GX58GY5(GY4XCY4XCY4XCY4H?Y48;Y48;Y"
+"4(;Z3X8\"3HXCEHG\\O':DBEF.3X3Y5HK]58;Y4H;Z5I8+49012HL31XDB17`/17KU"
+"17GQ17CP1'?O0W7N0G3M07/L58GU58CV5(CV5(CW4X?V4X;V4H;V487V487W4(3W"
+"4(3W3X3W3H/W3H/X3(4-39<S?W[[;E\"03%R\\1GCO17;M1'3K1'3L1W?O3G[U4YH2"
+"2Y`R1(DH0WC`0W;O0W7M0G/L07+K0''J/W#I4X;S4H7S4H7S4H7T483T483T4(3U"
+"4(3U3X+T3H+T38+T38'T3(#T2X#X28,-/W3X?V.X54N@0G'G0&_F/FSB/&K@/6OB"
+"1&_I1'/K483X4Z0A1)(K0'H007/O0''J0''I/V_H/F[G/6[F48/Q4(/Q3X+Q3X+R"
+"HWO)3X#R38#R38#R3'_R2W_T2W[T1'7H/6K8,V')*UW%)UJ`)E.X(D6U-5?2-V#;"
+"-V';-V#6/V3</6?>/&KA0V_H3H7Z1(0)/W;`/W'M/F_G/F[F/6WE/&SD.VKB3X'P"
+"3H#O37_O37_OJVRCC(/D2G[O0WWA.'_*&(2J!YFN!*^Y!</%\"=K<!.CO!/'L!//N"
+"!._Q!.7S$=;W+,<#/ZC_2''G-5[3.&3:.VKA07#G0WGU/7/]/&WL/&SD/&OC/&OC"
+".FG@.6C?2WSL2WSM2GOM37OLI'>`P'>I;EZA,E%C36YY;(^?AJ:[EK31J<#7L<#!"
+"O,C+PM.MQ-F0P>\".N^F-K^^.J/7(V/\\D'[C3*D\"7,E*X-V#106[D0X$!.G8*.FOO"
+".FGA.6C?.&?>-V7<-V3;2'GJ2'GJ1WCJ1WCJ1W?J2VK5/V3/0&[=1G7I2'3J273J"
+"2W7L37/M0EG;/#.]2C^;3S-V4RQV6B-V:T:PE7K<JI_4H-'6*#N9&BEP'RMJ7T^0"
+"N)/VF7T\".&KU.&;>-V3;-F3:-6+9-6'81G;G1G?H17;H1'3G1'/G1'3G0W3H0G+G"
+"0G/G07+F07+G07'G0''G,US9&C7!)D6G*CAP)S1M)D.B.E[4.EG0.E/*7X#3.V#2"
+".%_6.5[34(_YFJ$8G6/G-VCV-F/:-6'8-6'7-&#6,U[40W+D0W+E0G+E0G'D0G'E"
+"0G/F07'D0'#D0&_D/V_D/F[C/FWC/F[C-V/='C*T'CZS*4*-*#5M+DVS.F'7,EK."
+",5G-1I+7-F35-E[60FKA1X\\,.8PJ-6T5-&+C,U[5,UW4,UW3,EW3,5O107#A0&[A"
+"0&_A/V[A/V[B/V[A/FW@/6S@/6WA/F[B/&O@.VO@.VO@.FKC)3NF(C>P)#Z@*4&-"
+",4*8-F#5,US1,&3389+4/6/:1G#D0GGS.7X0,&T0,5_H,EW4,ES2,5O1,%G/,%G/"
+"+U?-/FS>/6S>/6S>/6O>/&K=.VK=.VK>.VG=.FG=.FC=.6?<.&;;.6C=.&?<-5&O"
+"*#>8'3>[(4C$)DFE/6;7>XC5/7/367C>4I0\"6<4R/YPP,&P*+U[M,5O5,%K/,5S0"
+"+UC-+E?,+E;++57*.FC:.F?:.VG;.FG<.6?:.6?:.6C;.&;:-V39-V79-F/8-V39"
+"-6+7-6+7,U:\\*CE_(3*G%C3*-EN_:H/91EZA.9S7+%*`-(,.-)@G,X@W+6(#+UG4"
+"+EC,+E?,+E;++%7)+%3)+%3(+%7(.&77.&77-V37-V37-F+6-F+6-V38-6+6-6+6"
+"-6'5-F37-&#4,U[3,U_4,%.Y*3AM)C5[%2604UBA8VC\"$#R\\*H[*\"S.L\"2C2#R?'"
+"(TS?+5C8+E?++57)*U3'+%3(*E+&*E+&*5#$*5#$-V/6-6'3-%_3-6#3-%_2-%_3"
+",U[1,U_2,EW1,U[2,EW1,ES0,ES0,U_2,%G))3-J)C5L'SJ2)TFWJKP!?8WE1W++"
+"#AY`#AV!#B!U)TV]*U3(+%;(*U/&*E+%*E'$*E+%*$_\"*$W!*$[!-%_1,UW0,UW0"
+",UW0,U_1,ES/,5O.,5O.,5O.,%G-,%K.+UG,+UG,+UC++UC*)S9Q)C5K)DBK+5?*"
+"+5;*+5;*)$\";%B5@$BAT)DRZ*E+%*5'$*E'$*$_\"*$_!*$_!*$Z`)TV_)TV^)TZ_"
+",%K,,%K,,%G+,%K,,%K,+UC++UC+,%O-+EC++EC*+E?*+UG++5;(+%7(+%;))SE\\"
+"(S)I)DBL*E+%*E+%*D*:%R9?$BEW)TR[*E/$*5#\"*$_!)TZ`*$^`)TV^)DN])DR]"
+")4J\\)4N\\)4F[+E?(+EC)+E?)+5;(+5?)+%7'+5;(+%7'+%7'*U3&+%3'+%7'*U/&"
+"*U/%+%7')CV-(S%H)$:M*5\"^*D>D&RIB$25O)4JX*$^`*$Z_)TV^)DR])TV^)TZ^"
+")DN\\)4N[)DR])4J[)$BY(T>X+%3&+5?(*U3%*U3%*U3%+%;'*E+$*E'#*E/$*E+$"
+"*5'#*5'#*%#!*5'\"*5#!)D\"4(C%H)$6I.UBC(\"]G%2EP)4JV)TZ^)DN\\)DN\\)DR\\"
+")DN\\)4JZ)4JZ)$BY)$BY)$FY)$BX(T>W(T:V*E'#*5'\"*5'\"*5#!*5'\"*5'\"*%#\""
+"*5#\"*E/$*%\"`*$^`*$^`*5'!)TV^)TV])#R.'BUE(4&G)#Z7(3%L'CN8)DR[)4N["
+")4N[)4NZ)DV\\)$FY)$FX)$FX)$BW(T>W(D:V(T>V(D6U(D6U*$Z`)TV_*$^`*$^`"
+")TV^)TZ_)DV^)TZ_)TV^)TV^)DR])TV])TZ])DR])DR\\'C2\"$B%:(T>S)TBQ*3EQ"
+"(D2M)$FX)4JY)$FX)$FX)$FX(T>V(T>V)$FW(TBV(T>U(D:U(TBV(D6T(4.R)DR]"
+")TV^*E3#)DV])DV])DV])T^_)4N\\)4J[)DR\\)DR[)4JZ)4N[)$FY)4NZ'BYN%21="
+"(D6Q)$JX'#2')$6J)$FW)4NY)$FW(T>U(T>V(T>U(T>U(D6T(D:T(46S(D6S(D:S"
+"(42R(42R)4J[)DR])4N\\)4N[)$FZ)4N[)4JZ)$JZ)4JZ)DV\\)$JY)$FY)4JY)4RZ"
+"(TBW'BYO%R9?(42M(T>V(D:Q(42O(TBV(TBU(D:T(D>T(T>U)$FV(D:S(D:S(D:S"
+"(46R(42Q(42Q(4.Q($.P)DR\\)$FY(TBX)4JZ)$FY(T>X)$FX(TBW)$FX(TBW(TBW"
+"(T>V(TBW(TBV(TBV'S2#&\"=@(42N(T>U)$FV(TBU(D:S(D:S(D>T(D:S(D6R(D:S"
+"(46R(46Q(TBT(42Q(42Q(42P(D:R($.P(T>X(D:W(TBW)4NZ(T>W(T>W(TFW)$FX"
+"(T>V(T>U(TBV(T>U(D:T(T>U(D:T(3J0&BED(D6R(D:S(D>T(D>T(D>S(D:S(TFT"
+"(D:R(46R(D:R(D6Q(46Q(42Q(42P(42P(42P(42P($2O(D:V(D6U(D:V(D:U(D6U"
+"(D:U(D:U(D>U(D6T(D>U(TFV(D>T(D:T(TFV(D>T(#F.&\"AG(T>T(D:S(D6R(D:R"
+"(D6R(D:R(D:R(46Q(46Q(TBS(4:Q(46P(42P(D:Q(46P(42N(42O($.O(D:V(D:U"
+"(46U(46T(D:U(46T(46S(D:T(D6T(D6S(D:T(D6S(D:S(D:S(D:S'#%_%\"1?(T>R"
+"(D:R(D:R(TBS(D:R(46Q(D:Q(46Q(D:Q(D6P(D:P(46P(46P(D>Q(46O(42O(46P"
+"(42O(42S(46T(4.S(42S(D:U(46S(46S(D>U(D:T(D6S(D6S(TBT(46R(46R(D:R"
+"'#2)%RAH(D:R(D6Q(D:Q(D>R(D6Q(D:Q(D:Q(TBR(D:P(D6P(D:P(D:P(46O(46O"
+"(42N(42O(46O(46O($.R(42S(4.S(42R(42S(42R(42S(42R(46S(42R(D6R(D:S"
+"(D6R(D6R)$FT'CF3&\"EK(TBT)$BS(T>S(T>R(TBS(T>R(D:P(D:P(46O(D:P(TBQ"
+"(D:P(D:O(D:O(D6O(46N(46N(46O($.R(46S(42S(4.R(4.R,EO(2W[N2WKM3W_Q"
+"5(/T5X;V78KY8Y#]=)`)?JL357G3)CV':)3_?:@.?:@.?:@.?ZH.?*<,<YX%:)+\\"
+"7(;R4W[J4'KF2W;B2G;@37KD.6''(D6O(46N(D6O($*R($*R($.R($*R(4.R+D^L"
+"1G'/3X'G5(GT58GY58G[58CZ587W6XGV88SU3W?<1VO*78#<8H?E783E68+G5H'K"
+"5('M4G_K3WSG3'CB2G7<27/82G772''.0&6\\*DB:(42N(42N(D6O($*Q'T*P($*Q"
+"($*Q($*Q(D.M(T&@(CZ7(CV1(SZ.)3^,)T\"(*$&&*4*%*D.&*T2'+$6'+$:(+$:("
+"*T6(*D2'*4*%)T\"$)3Z!)#Q`)#V#(SV'(CV+(3R.(#R3'SV9($&F(42O(42O(42O"
+"";

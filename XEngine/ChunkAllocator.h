@@ -41,7 +41,7 @@ public:
 private:
 	std::mutex *m_mutex;
 
-	std::map<long long, MemoryChunkObject> m_objectIndirectionTable; // Table used to keep pointers valid whenever an object swaps spots with another
+	std::map<long long, MemoryChunkObject *> m_objectIndirectionTable; // Table used to keep pointers valid whenever an object swaps spots with another
 	std::vector<MemoryChunk> m_allChunks;
 	int m_fullChunks;
 	int m_chunkCount; // Amount of usable chunks (non-empty)

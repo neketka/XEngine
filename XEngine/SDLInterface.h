@@ -26,5 +26,5 @@ private:
 	HardwareStatus m_displayStatus = HardwareStatus::Uninitialized;
 	bool m_vsync = false;
 	void *m_window = nullptr;
-	void *m_glcontext = nullptr;
+	void *m_glWrapperContext = nullptr;
 };

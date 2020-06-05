@@ -1,5 +1,6 @@
 #include "pch.h"
 #include "SDLInterface.h"
+#include "GLContext.h"
 
 #include <SDL.h>
 
@@ -23,8 +24,8 @@ void SDLInterface::Initialize(HardwareInterfaceType type)
 		SDL_GL_SetAttribute(SDL_GL_CONTEXT_MINOR_VERSION, 6);
 
 		m_window = SDL_CreateWindow(XEngine::GetInstance().GetName().c_str(), 100, 100, 800, 600, SDL_WINDOW_OPENGL | SDL_WINDOW_RESIZABLE);
-		m_glcontext = SDL_GL_CreateContext(static_cast<SDL_Window *>(m_window));
 
+		m_glWrapperContext = new GLContext(static_cast<SDL_Window *>(m_window));
 		m_displayStatus = HardwareStatus::Initialized;
 	}
 }
@@ -33,7 +34,7 @@ void SDLInterface::Destroy(HardwareInterfaceType type)
 {
 	if (type == HardwareInterfaceType::Display)
 	{
-		SDL_GL_DeleteContext(m_glcontext);
+		delete reinterpret_cast<GLContext *>(m_glWrapperContext);
 		SDL_DestroyWindow(static_cast<SDL_Window *>(m_window));
 		SDL_VideoQuit();
 		m_displayStatus = HardwareStatus::Disposed;
@@ -52,6 +53,14 @@ void SDLInterface::BeginFrame()
 			case SDL_QUIT:
 				XEngine::GetInstance().Shutdown();
 				break;
+			case SDL_WINDOWEVENT:
+				if (e.window.event == SDL_WINDOWEVENT_SIZE_CHANGED)
+				{
+					glm::ivec2 size;
+					SDL_GL_GetDrawableSize(static_cast<SDL_Window *>(m_window), &size.x, &size.y);
+					reinterpret_cast<GLContext *>(m_glWrapperContext)->ResizeScreen(size);
+				}
+				break;
 			}
 		}
 	}
@@ -61,7 +70,8 @@ void SDLInterface::EndFrame()
 {
 	if (m_displayStatus == HardwareStatus::Initialized)
 	{
-		SDL_GL_SwapWindow(static_cast<SDL_Window *>(m_window));
+		reinterpret_cast<GLContext *>(m_glWrapperContext)->Present();
+		reinterpret_cast<GLContext *>(m_glWrapperContext)->WaitUntilFramesFinishIfEqualTo(2);
 	}
 }
 
@@ -87,7 +97,7 @@ DisplayWindowMode SDLInterface::GetDisplayWindowMode()
 
 GraphicsContext *SDLInterface::GetGraphicsContext()
 {
-	return nullptr;
+	return reinterpret_cast<GLContext *>(m_glWrapperContext);
 }
 
 HardwareStatus SDLInterface::GetStatus(HardwareInterfaceType type)

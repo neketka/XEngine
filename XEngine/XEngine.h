@@ -34,7 +34,11 @@ public:
 	XENGINEAPI void SaveProperties(); 
 	XENGINEAPI void LoadProperties();
 
-	XENGINEAPI float GetTime();
+	XENGINEAPI float GetTime(UniqueId id);
+	XENGINEAPI void SetGlobalTimeScale(float scale);
+	XENGINEAPI void SetLocalTimeScale(UniqueId id, float scale);
+	XENGINEAPI float AdjustDeltaTime(UniqueId id, float deltaTime);
+
 	XENGINEAPI void AddBeginMarker(std::string label);
 	XENGINEAPI void AddEndMarker(std::string label);
 
@@ -94,6 +98,10 @@ private:
 	Scene *m_scene;
 	SubsystemManager *m_sysManager;
 	WorkerManager *m_workerManager;
+
+	std::map<UniqueId, glm::ivec2> m_timeAndScale;
+	float m_globalTimeScale = 1.f;
+	float m_time = 0.f;
 
 	std::map<std::string, int> m_intProps;
 	std::map<std::string, std::string> m_stringProps;

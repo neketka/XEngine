@@ -12,6 +12,7 @@ void XEngine::InitializeEngine(std::string name, int threadCount, bool defaultSy
 	m_engineInstance->m_maxECSThreads = std::max(0, threadCount - 1);
 	m_engineInstance->m_workerManager = new WorkerManager(threadCount);
 	
+	// Testing below
 	m_engineInstance->m_ecsRegistrar->RegisterComponent<TestComponent>();
 	m_engineInstance->m_ecsRegistrar->AddSystem(new TestSystem);
 
@@ -19,7 +20,7 @@ void XEngine::InitializeEngine(std::string name, int threadCount, bool defaultSy
 	scene->GetSystemManager()->AddSystem("TestSystem");
 	m_engineInstance->m_ecsRegistrar->GetSystem("TestSystem")->SetEnabled(true);
 
-	for (int i = 0; i < 1000; ++i)
+	for (int i = 0; i < 10; ++i)
 		scene->GetEntityManager()->CreateEntity({ "TestComponent" });
 
 	m_engineInstance->SetScene(scene);
@@ -162,9 +163,38 @@ void XEngine::LoadProperties()
 {
 }
 
-float XEngine::GetTime()
+float XEngine::GetTime(UniqueId id)
 {
-	return std::chrono::duration_cast<std::chrono::duration<float>>(std::chrono::high_resolution_clock::now() - m_beginTime).count();
+	float timeDelta = (std::chrono::duration_cast<std::chrono::duration<float>>(std::chrono::high_resolution_clock::now() - m_beginTime).count() - m_time) * m_globalTimeScale;
+	m_time += timeDelta;
+	auto scaleElement = m_timeAndScale.find(id);
+	if (id == 0 || scaleElement == m_timeAndScale.end())
+		return m_time;
+	else
+		return scaleElement->second.x += timeDelta * scaleElement->second.y;
+}
+
+void XEngine::SetGlobalTimeScale(float scale)
+{
+	GetTime(0);
+	m_globalTimeScale = scale;
+}
+
+void XEngine::SetLocalTimeScale(UniqueId id, float scale)
+{
+	if (GetTime(id) == m_time)
+		m_timeAndScale[id] = glm::ivec2(m_time, scale);
+	else
+		m_timeAndScale[id].y = scale;
+}
+
+float XEngine::AdjustDeltaTime(UniqueId id, float deltaTime)
+{
+	auto scaleElement = m_timeAndScale.find(id);
+	if (id == 0 || scaleElement == m_timeAndScale.end())
+		return deltaTime;
+	else
+		return scaleElement->second.x += deltaTime * scaleElement->second.y;
 }
 
 void XEngine::AddBeginMarker(std::string label)
@@ -276,10 +306,15 @@ void XEngine::Init()
 				LogMessage(kp.second->GetName() + " reported error state during initialization", LogMessageType::Message);
 		}
 	}
+
+	m_ecsRegistrar->InitSystems();
 }
 
 void XEngine::Cleanup()
 {
+	delete m_sysManager;
+	delete m_ecsRegistrar;
+
 	for (auto kp : m_hwInterfaces)
 	{
 		if (kp.second && kp.second->GetStatus(kp.first) == HardwareStatus::Initialized)

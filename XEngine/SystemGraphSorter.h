@@ -1,7 +1,7 @@
 #pragma once
 #include "System.h"
 #include <concurrent_queue.h>
-#include <unordered_map>
+#include <map>
 #include <queue>
 
 class DirectedSystemGraphNode

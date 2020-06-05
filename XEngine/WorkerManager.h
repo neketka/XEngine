@@ -68,7 +68,7 @@ private:
 	std::function<T(int)> m_func;
 	std::vector<bool> m_resultCounter;
 	std::vector<T> m_results;
-	bool m_freed;
+	std::atomic<bool> m_freed;
 	std::atomic<int> m_resultsReturned;
 	std::atomic<int> m_resultsExpected;
 	std::atomic<int> m_iterQueued;

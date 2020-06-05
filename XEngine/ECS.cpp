@@ -5,6 +5,7 @@ ECSRegistrar::~ECSRegistrar()
 {
 	for (auto sys : m_systems)
 	{
+		sys.second->Destroy();
 		delete sys.second;
 	}
 }
@@ -12,6 +13,7 @@ ECSRegistrar::~ECSRegistrar()
 void ECSRegistrar::AddSystem(ISystem *system)
 {
 	m_systems[system->GetName()] = system;
+	system->SetSubsystemManager(XEngine::GetInstance().GetSubsystemManager());
 }
 
 ISystem *ECSRegistrar::GetSystem(std::string name)
@@ -58,9 +60,17 @@ int ECSRegistrar::GetBufferPointerOffset(UniqueId id)
 	return m_components[id].BufferOffset;
 }
 
-bool ECSRegistrar::IsBufferedComponented(UniqueId id)
+bool ECSRegistrar::IsComponentBuffered(UniqueId id)
 {
 	return m_components[id].Buffered;
+}
+
+void ECSRegistrar::InitSystems()
+{
+	for (auto sys : m_systems)
+	{
+		sys.second->Initialize();
+	}
 }
 
 Scene::Scene(std::string name) : m_name(name)

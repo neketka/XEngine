@@ -30,10 +30,6 @@ class Component
 public:
 	UniqueId ComponentTypeID;
 	UniqueId EntityID;
-	bool Initialized;
-	bool Deleted;
-private:
-	bool padding[2];
 };
 
 template<class T>
@@ -69,19 +65,20 @@ public:
 	int GetTotalBufferSize();
 protected:
 	BufferedComponentHolder *m_holder;
+	char m_padding[16 - sizeof(BufferedComponentHolder *)]; // Usually the size of char[8]: Padding for SIMD
 };
 
 template<class T>
 class TypedBufferedComponent : public BufferedComponent
 {
 public:
-	std::vector<T>& GetVector()
+	std::vector<T>& GetVector() // Lazy initialize to prevent usage of vftable through inheritance
 	{
 		TypedBufferHolder<T> *typed;
 		if (m_holder)
 			typed = dynamic_cast<TypedBufferHolder<T>>(m_holder);
 		else
-			typed = new TypedBufferHolder<T>();
+			m_holder = typed = new TypedBufferHolder<T>();
 		return typed->GetVector();
 	}
 };
@@ -139,9 +136,11 @@ public:
 	int ChunkSize;
 	std::map<UniqueId, MemoryChunkAllocator *> CompTypeToAllocator;
 	std::map<UniqueId, MemoryChunkAllocator *> CompTypeToDisposedAllocator;
-	std::vector<UniqueId> ComponentTypes;
+
 	std::vector<MemoryChunkAllocator> Allocators;
 	std::vector<MemoryChunkAllocator> DisposedAllocators;
+
+	std::vector<UniqueId> ComponentTypes;
 };
 
 class ComponentDataIterator
@@ -236,7 +235,9 @@ private:
 
 	std::map<std::set<ComponentTypeId>, UniqueId> m_filteringCompsToInternalFiltering; // Map from a set of components to an unordered filtering id
 	std::map<std::set<ComponentTypeId>, ComponentGroupType *> m_componentGroupTypes; // Map from a set of components to a matching component group type
-	std::unordered_map<UniqueId, concurrency::concurrent_vector<ComponentGroupType *>> m_internalFilteringIdToComponentGroup; // Map from an unordered filtering group to a list of component group types
+	std::unordered_map<UniqueId, std::vector<ComponentGroupType *>> m_internalFilteringIdToComponentGroup; // Map from an unordered filtering group to a list of component group types
+
+	std::mutex compGroupTypeAddMutex;
 
 	concurrency::concurrent_unordered_map<UniqueId, std::pair<MemoryChunkObjectPointer, ComponentGroupType *>> m_componentGroups; // Map from a component group id to its pointer and component group type
 	concurrency::concurrent_unordered_map<UniqueId, std::pair<MemoryChunkObjectPointer, ComponentGroupType *>> m_movedComponentGroups; // Map from a component group about to be moved id to its pointer and component group type

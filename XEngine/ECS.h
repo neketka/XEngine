@@ -50,7 +50,8 @@ public:
 	XENGINEAPI int GetComponentSize(UniqueId id);
 	XENGINEAPI int GetComponentPointerOffset(UniqueId id);
 	XENGINEAPI int GetBufferPointerOffset(UniqueId id);
-	XENGINEAPI bool IsBufferedComponented(UniqueId id);
+	XENGINEAPI bool IsComponentBuffered(UniqueId id);
+	XENGINEAPI void InitSystems();
 	inline std::map<UniqueId, InternalTypeInfo>& GetComponentMap() { return m_components; }
 private:
 	std::map<std::string, UniqueId> m_events;

@@ -1,6 +1,8 @@
 #include "pch.h"
 #include "ChunkAllocator.h"
 
+#include <memory>
+
 // Initialize the variables
 MemoryChunkAllocator::MemoryChunkAllocator(int objectsPerChunk, int bytesPerObject) : m_objectsPerChunk(objectsPerChunk), m_bytesPerObject(bytesPerObject), 
 	m_bufferedCount(0), m_chunkCount(0), m_fullChunks(0)
@@ -10,7 +12,7 @@ MemoryChunkAllocator::MemoryChunkAllocator(int objectsPerChunk, int bytesPerObje
 
 void MemoryChunkAllocator::CleanupAllocator()
 {
-	for (MemoryChunk c : m_allChunks)
+	for (MemoryChunk& c : m_allChunks)
 		std::free(c.Memory); // Free all chunk memory
 	delete m_mutex;
 }
@@ -43,7 +45,7 @@ MemoryChunkObjectPointer MemoryChunkAllocator::AllocateObject()
 
 	MemoryChunkObjectPointer ptr = ((chunk.Index * static_cast<long long>(m_objectsPerChunk) + chunk.ObjectCount) << 32) | obj.AllocCount; // Make a unique pointer to object
 
-	m_objectIndirectionTable[ptr] = obj; // Add this pointer as being a pointer to this object
+	m_objectIndirectionTable[ptr] = &obj; // Add this pointer as being a pointer to this object
 
 	m_mutex->unlock();
 	return ptr;
@@ -52,7 +54,7 @@ MemoryChunkObjectPointer MemoryChunkAllocator::AllocateObject()
 void MemoryChunkAllocator::FreeObject(MemoryChunkObjectPointer ptr)
 {
 	m_mutex->lock();
-	MemoryChunkObject& obj = m_objectIndirectionTable[ptr]; // Fetch the object
+	MemoryChunkObject& obj = *m_objectIndirectionTable[ptr]; // Fetch the object
 	MemoryChunk *chunk = &m_allChunks[obj.ChunkIndex]; // Fetch the chunk of the object
 	if (obj.ChunkIndex == m_chunkCount - 1 && chunk->ObjectCount == obj.IntrachunkIndex + 1) // Last object of last chunk
 	{
@@ -67,9 +69,9 @@ void MemoryChunkAllocator::FreeObject(MemoryChunkObjectPointer ptr)
 			--m_fullChunks;
 		--chunk->ObjectCount; 
 		
-		MemoryChunkObject& lastObj = m_allChunks[chunk->Index].Objects[chunk->ObjectCount - 1 /*chunk->ObjectCount*/]; // Last object of last chunk
+		MemoryChunkObject& lastObj = m_allChunks[chunk->Index].Objects[chunk->ObjectCount]; // Last object of last chunk
 		
-		m_objectIndirectionTable[lastObj.Pointer] = obj; // Redeclare the pointer for the last object
+		m_objectIndirectionTable[lastObj.Pointer] = &obj; // Redeclare the pointer for the last object
 		obj.Pointer = lastObj.Pointer; // Set the pointer correctly
 
 		std::memcpy(obj.Memory, lastObj.Memory, m_bytesPerObject); // Copy the last object's memory
@@ -92,7 +94,7 @@ void MemoryChunkAllocator::FreeObject(MemoryChunkObjectPointer ptr)
 void *MemoryChunkAllocator::GetObjectMemory(MemoryChunkObjectPointer ptr)
 {
 	m_mutex->lock();
-	auto val = m_objectIndirectionTable[ptr].Memory;
+	auto val = m_objectIndirectionTable[ptr]->Memory;
 	m_mutex->unlock();
 	return val;
 }
@@ -127,8 +129,11 @@ void MemoryChunkAllocator::AllocateNewChunk()
 	MemoryChunk& chunk = m_allChunks.back();
 	chunk.Index = m_allChunks.size() - 1; // Get the last chunk index
 	chunk.ObjectCount = 0;
-	chunk.Memory = std::calloc(m_objectsPerChunk, m_bytesPerObject); // Allocate chunk memory with 0s in all bytes
-
+	chunk.Memory = std::calloc(m_objectsPerChunk + 1, m_bytesPerObject); // Allocate chunk memory with 0s in all bytes
+	/*
+	size_t space = (m_objectsPerChunk + 1) * m_bytesPerObject;
+	chunk.Memory = std::align(16, m_objectsPerChunk * m_bytesPerObject, chunk.Memory, space); // Align for SIMD
+	*/
 	for (int i = 0; i < m_objectsPerChunk; ++i)
 	{
 		chunk.Objects.push_back(MemoryChunkObject());
