@@ -22,10 +22,13 @@ GLSync::~GLSync()
 	GLsync sync = m_sync;
 	bool doDel = m_hasSync;
 
-	dynamic_cast<GLContext *>(m_context)->DeleteInitable([sync, doDel]() {
-		if (doDel)
-			glDeleteSync(sync);
-	});
+	if (m_hasSync)
+	{
+		dynamic_cast<GLContext *>(m_context)->DeleteInitable([sync]()
+			{
+				glDeleteSync(sync);
+			});
+	}
 }
 
 void GLSync::SetSync(GLsync sync)

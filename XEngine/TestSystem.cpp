@@ -198,7 +198,6 @@ void main()
 	}
 
 	m_stagingBuffer->FlushMapped(0, 3 * sizeof(glm::vec3) + 4 * testwidth * testheight);
-	m_stagingBuffer->UnmapBuffer();
 
 	m_cmdRenderBuffer = context->CreateGraphicsCommandBuffers(1, false, true, false)[0];
 	m_cmdRenderBuffer->BeginRecording();
@@ -218,10 +217,16 @@ void main()
 	m_cmdTopBuffer->Draw(3, 1, 0, 0);
 	m_cmdTopBuffer->EndRenderPass();
 	m_cmdTopBuffer->StopRecording();
+
+	m_stagingBuffer->UnmapBuffer();
 }
 
 void TestSystem::Destroy()
 {
+	GraphicsContext *context = XEngine::GetInstance().
+		GetInterface<DisplayInterface>(HardwareInterfaceType::Display)->GetGraphicsContext();
+	context->SyncWithCommandSubmissionThread();
+
 	delete m_textureView;
 	delete m_texture;
 	delete m_shaderResourceInstance;
@@ -266,11 +271,19 @@ void TestSystem::Update(float deltaTime, ComponentDataIterator& data)
 			dataPointer->Component->myValue = 0;
 			dataPointer->Component->instance = instance++;
 		}
-		if (dataPointer->Component->instance == 0)
+		for (int i = 0; i < 100; ++i)
 		{
-			XEngine::GetInstance().GetInterface<DisplayInterface>(HardwareInterfaceType::Display)->GetGraphicsContext()
-				->SubmitCommands(m_cmdTopBuffer, GraphicsQueueType::Graphics);
+			dataPointer->Component->myValue += deltaTime * 2;
 		}
-		dataPointer->Component->myValue += deltaTime * 2;
 	}
+}
+
+void TestSystem::AfterEntityUpdate(float deltaTime)
+{
+	XEngine::GetInstance().GetInterface<DisplayInterface>(HardwareInterfaceType::Display)->GetGraphicsContext()
+		->SubmitCommands(m_cmdTopBuffer, GraphicsQueueType::Graphics);
+}
+
+void TestSystem::PostUpdate(float deltaTime, int threadIndex)
+{
 }

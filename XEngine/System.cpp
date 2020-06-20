@@ -21,14 +21,6 @@ void SubsystemManager::SetSceneManager(SystemManager *manager)
 	InitializeSystemOrdering();
 }
 
-void SubsystemManager::RaiseEvent(Entity e, EventId eventId)
-{
-	std::vector<ComponentTypeId> compTypes;
-	for (Component *ptr : e.GetComponents())
-		compTypes.push_back(ptr->ComponentTypeID);
-	//TODO: implement "get filtering groups from component group"
-}
-
 void SubsystemManager::AddSystem(std::string name)
 {
 	ECSRegistrar *registrar = XEngine::GetInstance().GetECSRegistrar();
@@ -48,7 +40,7 @@ void SubsystemManager::InitializeSystemOrdering()
 
 	m_systemGraph = new SystemGraphSorter(m_sceneManager->GetScene()->GetComponentManager(), systems);
 
-	for (ISystem *system : systems) // Sort the PostUpdate systems correctly
+	for (ISystem *system : systems) // Insert the PostUpdate systems correctly
 	{
 		std::vector<ComponentTypeId> compIds;
 		for (std::string comp : system->GetComponentTypes()) // Add all component type ids to this vector
@@ -76,8 +68,6 @@ void SubsystemManager::ExecuteJobs(int threadIndex, float deltaTime)
 	m_systemGraph->SetDeltaTime(deltaTime); // Presumably, all the deltaTime is the same across all threads
 
 	m_systemGraph->RunFromThread(threadIndex == 0);
-
-	//TODO: Call events
 
 	if (threadIndex == 0)
 	{

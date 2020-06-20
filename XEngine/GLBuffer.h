@@ -20,7 +20,6 @@ public:
 
 	void *Mapped;
 
-	std::mutex Lock;
 	std::atomic_bool Helper;
 
 	void Reset()

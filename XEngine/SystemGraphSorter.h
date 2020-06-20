@@ -14,7 +14,8 @@ public:
 	std::atomic_int UnfulfilledInputs;
 	std::atomic_int QueuedJobs;
 
-	bool VisitedFlag;
+	std::vector<bool> *VisitedInputs;
+
 	std::mutex Mutex;
 };
 
@@ -28,11 +29,10 @@ public:
 	XENGINEAPI void RunFromThread(bool isMain);
 private:
 	void SetupGraph(std::vector<ISystem *>& systems);
-	void PropagateUntilFindEnabledOrNonEmptyOrVisitedOrUnfulfilled(std::vector<DirectedSystemGraphNode *> nodes);
+	void PropagateUntilFindEnabledOrNonEmptyOrVisitedOrUnfulfilled(std::vector<DirectedSystemGraphNode *>& nodes);
 
 	std::atomic_int m_threadsBusy;
 	float m_deltaTime;
-	bool m_currVisitedFlag = true;
 
 	concurrency::concurrent_queue<ComponentDataIterator> m_jobs;
 

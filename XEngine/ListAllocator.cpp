@@ -7,47 +7,100 @@ ListAllocator::ListAllocator(int size, int maxAllocs)
 	m_pointer = 0;
 	m_maxHeaders = maxAllocs;
 
-	m_headers.reserve(maxAllocs);
-	m_pointers.reserve(maxAllocs);
+	m_headerLinks.resize(maxAllocs);
+	m_freeList.resize(maxAllocs);
+	for (int i = 0; i < maxAllocs; ++i)
+		m_freeList[i] = i;
 }
 
 ListAllocator::~ListAllocator()
 {
 }
 
-UniqueId ListAllocator::AllocateMemory(int size, int alignment)
+ListMemoryPointer *ListAllocator::AllocateMemory(int size, int alignment)
 {
 	int alignmentPad = m_pointer % alignment;
 
-	int newPtr = m_pointer + alignmentPad + size;
+	int thisPtr = m_pointer + alignmentPad;
+	int newPtr = thisPtr + size;
 
 	if (newPtr >= m_maxSize)
 	{
 		Defragment();
 		alignmentPad = m_pointer % alignment;
-		newPtr = m_pointer + alignmentPad + size;
+		thisPtr = m_pointer + alignmentPad;
+		newPtr = thisPtr + size;
 		if (newPtr >= m_maxSize)
-			return 0;
+			return nullptr;
 	}
 
-	UniqueId id = GenerateID();
-	m_headers.push_back(ListEntryHeader(id, m_pointer + alignmentPad, size, alignmentPad, alignment));
+	int index = m_freeList.back();
+	m_freeList.pop_back();
+
+	m_freeSpace -= alignmentPad + size;
+
+	if (!m_first)
+	{
+		m_first = m_last = &m_headerLinks[index];
+		m_first->Pointer = thisPtr;
+		m_first->Alignment = alignment;
+		m_first->Prev = nullptr;
+		m_first->Next = nullptr;
+		m_first->Size = size;
+		m_first->Index = index;
+		m_first->Padding = alignmentPad;
+	}
+	else
+	{
+		ListEntryHeader *h = &m_headerLinks[index];
+		h->Pointer = thisPtr;
+		h->Alignment = alignment;
+		h->Prev = m_last;
+		h->Next = nullptr;
+		h->Size = size;
+		h->Index = index;
+		h->Padding = alignmentPad;
+		m_last->Next = h;
+	}
+
 	m_pointer = newPtr;
-	m_pointers[id] = &m_headers.back();
 
-	return id;
+	return dynamic_cast<ListMemoryPointer *>(m_last);
 }
 
-void ListAllocator::DeallocateMemory(UniqueId block)
+void ListAllocator::DeallocateMemory(ListMemoryPointer *ptr)
 {
-	m_pointers[block]->Id = 0;
-	m_pointers.erase(block);
+	ListEntryHeader *h = static_cast<ListEntryHeader *>(ptr);
+	h->Prev->Next = h->Next;
+	h->Next->Prev = h->Prev;
+	m_freeList.push_back(h->Index);
+	m_freeSpace += h->Size + h->Padding;
 }
 
-ListPointer ListAllocator::GetPointer(UniqueId block)
+int ListAllocator::GetAllocationSize(ListMemoryPointer *ptr)
 {
-	ListEntryHeader *h = m_pointers[block];
-	return h->Pointer + h->PaddingSize;
+	ListEntryHeader *h = static_cast<ListEntryHeader *>(ptr);
+	return h->Size;
+}
+
+void ListAllocator::ShrinkToFit(int extraMemory)
+{
+	m_maxSize = m_pointer + extraMemory + 1;
+}
+
+void ListAllocator::SetSize(int maxSize)
+{
+	m_maxSize = maxSize;
+}
+
+int ListAllocator::GetMaxSize()
+{
+	return m_maxSize;
+}
+
+int ListAllocator::GetFreeSpace()
+{
+	return m_freeSpace;
 }
 
 void ListAllocator::SetMoveCallback(std::function<void(MoveData&)> move)
@@ -57,32 +110,26 @@ void ListAllocator::SetMoveCallback(std::function<void(MoveData&)> move)
 
 void ListAllocator::Defragment()
 {
-	for (int i = m_headers.size() - 1; i >= 0; --i)
-	{
-		if (m_headers[i].Id == 0)
-		{
-			m_headers.erase(m_headers.begin() + i);
-			--i;
-		}
-	}
+	int pointer = 0;
 
-	int pointer = 0;	
 	MoveData mv;
-	for (ListEntryHeader& h : m_headers)
+	for (ListEntryHeader *h = m_first; h->Next != nullptr; h = h->Next)
 	{
-		mv.SrcIndex = h.Pointer;
-		mv.Size = h.Size;
+		mv.SrcIndex = h->Pointer;
+		mv.Size = h->Size;
 
-		int alignmentPad = pointer % h.Alignment;
-		int newPtr = pointer + alignmentPad + h.Size;
+		int alignmentPad = pointer % h->Alignment;
+		int thisPtr = pointer + alignmentPad;
+		int newPtr = thisPtr + h->Size;
 
-		h.PaddingSize = alignmentPad;
-		mv.DestIndex = h.Pointer = pointer + alignmentPad;
+		h->Pointer = thisPtr;
+		h->Padding = alignmentPad;
 
-		m_pointers[h.Id] = &h;
+		mv.DestIndex = h->Pointer = thisPtr;
 		pointer = newPtr;
 
-		m_move(mv);
+		if (mv.SrcIndex != mv.DestIndex)
+			m_move(mv);
 	}
 	m_pointer = pointer;
 }

@@ -1,4 +1,5 @@
 #include "pch.h"
+#include "XEngine.h"
 #include "GLContext.h"
 #include "GLPipeline.h"
 #include "GLShaderData.h"
@@ -17,6 +18,7 @@ GLContext::GLContext(SDL_Window *window)
 	m_running = true;
 	m_specific = new GLSpecific;
 	m_initScreen = false;
+	m_syncWithRenderThread = false;
 
 	glm::ivec2 size;
 	SDL_GL_GetDrawableSize(static_cast<SDL_Window *>(window), &size.x, &size.y);
@@ -28,12 +30,14 @@ GLContext::GLContext(SDL_Window *window)
 
 GLContext::~GLContext()
 {
+	m_running = false;
+
 	delete m_colorImage;
 	delete m_colorView;
 	delete m_renderTarget;
 
-	m_running = false;
 	m_glSubmissionThread->join();
+
 	delete m_specific;
 	delete m_glSubmissionThread;
 }
@@ -190,10 +194,7 @@ void GLContext::EnqueueInitable(GLInitable *initable)
 void GLContext::WaitUntilFramesFinishIfEqualTo(int bufferedFrames)
 {
 	if (m_framesInProgress >= bufferedFrames)
-	{
-		while (m_framesInProgress != 0)
-			std::this_thread::sleep_for(std::chrono::milliseconds(1));
-	}
+		while (m_framesInProgress != 0);
 }
 
 void GLContext::WaitForSync(GraphicsSyncObject *sync)
@@ -205,8 +206,6 @@ void GLContext::MapRequest(GLBuffer *buffer)
 {
 	m_queuedMaps.push(buffer);
 	while (!buffer->GetMapRequest().Helper);
-	buffer->GetMapRequest().Lock.lock();
-	buffer->GetMapRequest().Lock.unlock();
 }
 
 void GLAPIENTRY
@@ -255,6 +254,8 @@ void GLContext::RunContextThread()
 
 	while (m_running)
 	{
+		m_syncWithRenderThread = false;
+
 		glm::ivec2 frameWindowSize = GetScreenSize();
 		if (frameWindowSize != windowSize)
 		{
@@ -276,43 +277,35 @@ void GLContext::RunContextThread()
 			GLBufferMapRequest& req = map->GetMapRequest();
 			if (req.RequestMap)
 			{
-				req.Lock.lock();
-				req.Helper = true;
 				req.Mapped = glMapNamedBufferRange(map->GetBufferId(), req.Offset, req.Length, req.Bits);
-				req.Lock.unlock();
-				req.Helper = false;
+				req.Helper = true;
 			}
 			else if (req.RequestUnmap)
 			{
-				req.Lock.lock();
-				req.Helper = true;
 				glUnmapNamedBuffer(map->GetBufferId());
-				req.Lock.unlock();
-				req.Helper = false;
+				req.Helper = true;
 			}
 			else if (req.RequestInvalidate)
 			{
-				req.Lock.lock();
-				req.Helper = true;
 				glInvalidateBufferSubData(map->GetBufferId(), req.Offset, req.Length);
-				req.Lock.unlock();
-				req.Helper = false;
+				req.Helper = true;
 			}
 			else if (req.RequestFlush)
 			{
-				req.Lock.lock();
-				req.Helper = true;
 				glFlushMappedNamedBufferRange(map->GetBufferId(), req.Offset, req.Length);
-				req.Lock.unlock();
-				req.Helper = false;
+				req.Helper = true;
 			}
 		}
 		while (m_queuedBuffers.try_pop(buffer))
 		{
 			if (!buffer)
 			{
-				GLRenderTarget *t = dynamic_cast<GLRenderTarget *>(m_renderTarget);
-				glBlitNamedFramebuffer(t->GetFBOId(), 0, 0, 0, t->GetWidth(), t->GetHeight(), 0, 0, t->GetWidth(), t->GetHeight(), GL_COLOR_BUFFER_BIT, GL_NEAREST);
+				if (m_running)
+				{
+					GLRenderTarget *t = dynamic_cast<GLRenderTarget *>(m_renderTarget);
+					if (t)
+						glBlitNamedFramebuffer(t->GetFBOId(), 0, 0, 0, t->GetWidth(), t->GetHeight(), 0, 0, t->GetWidth(), t->GetHeight(), GL_COLOR_BUFFER_BIT, GL_NEAREST);
+				}
 
 				SDL_GL_SwapWindow(m_window);
 				--m_framesInProgress;
@@ -345,8 +338,15 @@ void GLContext::RunContextThread()
 		pushSyncs.clear();
 		while (m_queuedDeleters.try_pop(deleter))
 			deleter();
+
+		m_syncWithRenderThread = true;
 	}
 	SDL_GL_DeleteContext(m_context);
+}
+
+void GLContext::SyncWithCommandSubmissionThread()
+{
+	while (!m_syncWithRenderThread);
 }
 
 GraphicsRenderPass *GLContext::CreateRenderPass(GraphicsRenderPassState& state)
@@ -354,7 +354,7 @@ GraphicsRenderPass *GLContext::CreateRenderPass(GraphicsRenderPassState& state)
 	return new GLRenderPass(state);
 }
 
-GraphicsSyncObject *GLContext::CreateSync()
+GraphicsSyncObject *GLContext::CreateSync(bool gpuQueueSync)
 {
 	return new GLSync(this);
 }

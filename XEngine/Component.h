@@ -134,8 +134,8 @@ class ComponentGroupType
 {
 public:
 	int ChunkSize;
-	std::map<UniqueId, MemoryChunkAllocator *> CompTypeToAllocator;
-	std::map<UniqueId, MemoryChunkAllocator *> CompTypeToDisposedAllocator;
+	std::unordered_map<UniqueId, MemoryChunkAllocator *> CompTypeToAllocator;
+	std::unordered_map<UniqueId, MemoryChunkAllocator *> CompTypeToDisposedAllocator;
 
 	std::vector<MemoryChunkAllocator> Allocators;
 	std::vector<MemoryChunkAllocator> DisposedAllocators;
@@ -180,10 +180,10 @@ public:
 private:
 	std::vector<int> m_sizes;
 	std::vector<void *> m_memoryBlocks;
+	std::vector<void *> m_curComps;
 	int m_index = 0;
 	int m_first;
 	int m_count;
-	std::vector<void *> m_curComps;
 	void AcquireNext()
 	{
 		for (int i = 0; i < m_sizes.size(); ++i)

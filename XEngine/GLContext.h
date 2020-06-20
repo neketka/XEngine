@@ -31,7 +31,7 @@ public:
 	virtual GraphicsShaderResourceInstance *CreateShaderResourceInstance(GraphicsShaderResourceViewData& data) override;
 	virtual GraphicsSampler *CreateSampler(GraphicsSamplerState& state) override;
 	virtual GraphicsShader *CreateShader(GraphicsSpecificShaderCode *code) override;
-	virtual GraphicsSyncObject *CreateSync() override;
+	virtual GraphicsSyncObject *CreateSync(bool gpuQueueSync) override;
 	virtual GraphicsRenderPass *CreateRenderPass(GraphicsRenderPassState& state) override;
 	virtual std::vector<GraphicsQuery *> CreateQueries(int count, GraphicsQueryType type) override;
 	virtual GraphicsImageView *GetScreenImageView() override;
@@ -43,6 +43,7 @@ public:
 	virtual void UpdateShaderBufferResourceInstance(GraphicsShaderResourceInstance *instance, GraphicsMemoryBuffer *buffer, int offset, int range) override;
 	virtual void SubmitCommands(GraphicsCommandBuffer *commands, GraphicsQueueType queue) override;
 	virtual void Present() override;
+	virtual void SyncWithCommandSubmissionThread();
 
 	void ResizeScreen(glm::ivec2 size);
 	void WaitUntilFramesFinishIfEqualTo(int bufferedFrames);
@@ -56,12 +57,13 @@ private:
 	std::atomic<glm::ivec2> m_atomicScreenSize;
 
 	std::atomic_bool m_initScreen;
+	std::atomic_bool m_syncWithRenderThread;
 
 	GraphicsImageObject *m_colorImage;
 	GraphicsImageView *m_colorView;
 	GraphicsRenderTarget *m_renderTarget;
 
-	bool m_running = false;
+	std::atomic_bool m_running = false;
 	GLSpecific *m_specific;
 	SDL_Window *m_window; 
 	SDL_GLContext m_context;

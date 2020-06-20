@@ -1,6 +1,7 @@
 #include "pch.h"
 #include "SystemGraphSorter.h"
 #include <concurrent_vector.h>
+#include <stack>
 
 SystemGraphSorter::SystemGraphSorter(ComponentManager *manager, std::vector<ISystem *>& systems) : m_manager(manager)
 {
@@ -23,8 +24,6 @@ void SystemGraphSorter::SetDeltaTime(float dt)
 void SystemGraphSorter::QueueLayers()
 {
 	PropagateUntilFindEnabledOrNonEmptyOrVisitedOrUnfulfilled(m_startingNodes); // Add the starting nodes' jobs
-
-	m_currVisitedFlag = !m_currVisitedFlag; // Invert flag for this pass to differentiate from last pass
 }
 
 void SystemGraphSorter::RunFromThread(bool isMain)
@@ -48,6 +47,7 @@ void SystemGraphSorter::RunFromThread(bool isMain)
 
 			if (--node->QueuedJobs == 0 && node->Mutex.try_lock())
 			{
+				node->System->AfterEntityUpdate(m_deltaTime);
 				PropagateUntilFindEnabledOrNonEmptyOrVisitedOrUnfulfilled(node->Outputs); // Add jobs to the queue from real systems 
 				node->Mutex.unlock();
 			}
@@ -76,7 +76,6 @@ void SystemGraphSorter::SetupGraph(std::vector<ISystem *>& systems)
 	{
 		DirectedSystemGraphNode *node = new DirectedSystemGraphNode;
 		node->System = sysPair.second;
-		node->VisitedFlag = m_currVisitedFlag;
 
 		m_nodes.push_back(node);
 		systemNodes[node->System->GetName()] = node;
@@ -102,14 +101,6 @@ void SystemGraphSorter::SetupGraph(std::vector<ISystem *>& systems)
 	}
 
 	index = 0;
-	for (DirectedSystemGraphNode *node : m_nodes) // Find the amount of starting nodes
-	{
-		if (node->Inputs.size() == 0)
-			m_startingNodes.push_back(m_nodes[index]);
-		++index;
-	}
-
-	index = 0;
 	for (DirectedSystemGraphNode *node : m_nodes) // Add all the
 	{
 		for (int innerIndex = 0; innerIndex < m_nodes.size(); ++innerIndex)
@@ -122,10 +113,20 @@ void SystemGraphSorter::SetupGraph(std::vector<ISystem *>& systems)
 			std::vector<std::string> innerTypes = innerNode->System->GetComponentTypes();
 			std::vector<std::string> outerTypes = node->System->GetComponentTypes();
 
+			std::vector<std::string> innerReadOnly = innerNode->System->GetReadOnlyComponentTypes();
+			std::vector<std::string> outerReadOnly = node->System->GetReadOnlyComponentTypes();
+
 			bool found = false;
 			for (std::string type : innerTypes)
 			{ // See if they contain ANY common components
-				found |= std::find(outerTypes.begin(), outerTypes.end(), type) != outerTypes.end();
+				bool foundHere = std::find(outerTypes.begin(), outerTypes.end(), type) != outerTypes.end();
+				bool bothReadOnly = (std::find(innerReadOnly.begin(), innerReadOnly.end(), type) != innerReadOnly.end()) &&
+					(std::find(outerReadOnly.begin(), outerReadOnly.end(), type) != outerReadOnly.end());
+				if (foundHere && !bothReadOnly)
+				{
+					found = true;
+					break;
+				}
 			}
 
 			if (found)
@@ -139,23 +140,70 @@ void SystemGraphSorter::SetupGraph(std::vector<ISystem *>& systems)
 
 	for (DirectedSystemGraphNode *node : m_nodes)
 	{
+		node->VisitedInputs = new std::vector<bool>(node->Inputs.size());
+	}
+
+	std::stack<DirectedSystemGraphNode *> curNodeStack;
+	std::stack<int> curNodeIndexStack;
+
+	index = 0;
+	for (DirectedSystemGraphNode *node : m_nodes)
+	{
+		curNodeStack.push(m_nodes[index]);
+		curNodeIndexStack.push(0);
+
+		while (curNodeStack.size() > 0) // Sever cycles in the graph
+		{
+			DirectedSystemGraphNode *curNode = curNodeStack.top();
+			int& curNodeIndex = curNodeIndexStack.top();
+
+			if (curNodeIndex >= curNode->Outputs.size())
+			{
+				curNodeStack.pop();
+				curNodeIndexStack.pop();
+
+				node->VisitedInputs->clear();
+				node->VisitedInputs->resize(node->Inputs.size());
+				continue;
+			}
+
+			DirectedSystemGraphNode *innerNode = curNode->Outputs[curNodeIndex];
+			int inputIndex = std::distance(innerNode->Inputs.begin(), std::find(innerNode->Inputs.begin(), innerNode->Inputs.end(), node));
+			if ((*innerNode->VisitedInputs)[inputIndex])
+			{
+				curNode->Outputs.erase(curNode->Outputs.begin() + curNodeIndex);
+				innerNode->Inputs.erase(innerNode->Inputs.begin() + inputIndex);
+			}
+			else
+				(*innerNode->VisitedInputs)[inputIndex] = true;
+
+			++curNodeIndex;
+			curNodeStack.push(innerNode);
+			curNodeIndexStack.push(0);
+		}
+	}
+ 
+	index = 0;
+	for (DirectedSystemGraphNode *node : m_nodes)
+	{
 		node->UnfulfilledInputs = node->Inputs.size(); // Set the amount of inputs unfulfilled as the number of inputs
+		delete node->VisitedInputs;
+		if (node->Inputs.size() == 0) // Find the amount of starting nodes
+			m_startingNodes.push_back(m_nodes[index]);
+		++index;
 	}
 }
 
-void SystemGraphSorter::PropagateUntilFindEnabledOrNonEmptyOrVisitedOrUnfulfilled(std::vector<DirectedSystemGraphNode *> nodes)
+void SystemGraphSorter::PropagateUntilFindEnabledOrNonEmptyOrVisitedOrUnfulfilled(std::vector<DirectedSystemGraphNode *>& nodes)
 {
 	for (DirectedSystemGraphNode *output : nodes)
 	{
-		if (output->VisitedFlag == m_currVisitedFlag) // If already visited
-			continue;
-		else if (--output->UnfulfilledInputs > 0) // If all input graphs are finished
+		if (--output->UnfulfilledInputs > 0) // If all input graphs are finished
 			continue;
 		else if (output->System->IsEnabled())
 		{
 			if (!output->Mutex.try_lock()) // Try to hold lock for this system
 				continue;
-			output->VisitedFlag = m_currVisitedFlag;
 
 			std::vector<ComponentDataIterator> *jobs = m_manager->GetFilteringGroup(output->System->__filteringGroup, false);
 			std::vector<ComponentDataIterator> *disposedJobs = m_manager->GetFilteringGroup(output->System->__filteringGroup, true);

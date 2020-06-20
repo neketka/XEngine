@@ -18,9 +18,9 @@ public:
 	std::string Name;
 	int Size;
 	UniqueId Identifier;
-	bool Buffered;
 	int ComponentOffset;
 	int BufferOffset;
+	bool Buffered;
 };
 
 class ECSRegistrar
@@ -28,6 +28,7 @@ class ECSRegistrar
 public:
 	XENGINEAPI ~ECSRegistrar();
 	XENGINEAPI void AddSystem(ISystem *system);
+	XENGINEAPI void AddSystems(std::vector<ISystem *> systems);
 	XENGINEAPI ISystem *GetSystem(std::string name);
 	XENGINEAPI UniqueId GetEventId(std::string name);
 	template<class T>
@@ -45,6 +46,9 @@ public:
 		m_components[id] = info;
 		m_componentsByName[info.Name] = id;
 	}
+	template<class T, class ...TArgs>
+	void RegisterComponents() { RegisterComponent<T>(); RegisterComponents<TArgs>(); }
+
 	XENGINEAPI UniqueId GetComponentIdByName(std::string name);
 	XENGINEAPI std::string GetComponentName(UniqueId id);
 	XENGINEAPI int GetComponentSize(UniqueId id);

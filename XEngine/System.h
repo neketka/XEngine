@@ -24,17 +24,18 @@ public:
 
 	virtual std::string GetName() = 0;
 
-	virtual int GetMaxPostThreadCount() { return 1; }
+	virtual int GetMaxPostThreadCount() { return 0; }
 	virtual bool IsPostMainThread() { return false; }
 
 	virtual std::vector<std::string> GetSystemsBefore() { return {}; }
 	virtual std::vector<std::string> GetSystemsAfter() { return {}; }
 	virtual std::vector<std::string> GetRequiredSystems() { return {}; }
 	virtual std::vector<std::string> GetComponentTypes() = 0;
+	virtual std::vector<std::string> GetReadOnlyComponentTypes() { return {}; }
 
 	virtual void Update(float deltaTime, ComponentDataIterator& data) { }
+	virtual void AfterEntityUpdate(float deltaTime) {}
 	virtual void PostUpdate(float deltaTime, int threadIndex) { }
-	virtual void ProcessEvent(float deltaTime, ComponentDataIterator& data, UniqueId eventId) { }
 	virtual void Dispose(ComponentDataIterator& data) { }
 
 	inline bool IsEnabled() { return m_enabled; }
@@ -71,7 +72,6 @@ public:
 	XENGINEAPI ISystem *GetSystem(std::string name);
 
 	XENGINEAPI void SetSceneManager(SystemManager *manager);
-	XENGINEAPI void RaiseEvent(Entity e, EventId eventId);
 
 	XENGINEAPI void AddSystem(std::string name);
 

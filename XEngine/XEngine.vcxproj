@@ -167,8 +167,10 @@
     </Link>
   </ItemDefinitionGroup>
   <ItemGroup>
+    <ClInclude Include="AssetBundleReader.h" />
     <ClInclude Include="AssetManager.h" />
     <ClInclude Include="AudioRecordingInterface.h" />
+    <ClInclude Include="Bounding.h" />
     <ClInclude Include="ChunkAllocator.h" />
     <ClInclude Include="CommonInterface.h" />
     <ClInclude Include="Component.h" />
@@ -192,6 +194,7 @@
     <ClInclude Include="JoystickInterface.h" />
     <ClInclude Include="KeyboardInterface.h" />
     <ClInclude Include="ListAllocator.h" />
+    <ClInclude Include="MeshAsset.h" />
     <ClInclude Include="MouseInterface.h" />
     <ClInclude Include="NetworkInterface.h" />
     <ClInclude Include="pch.h" />
@@ -207,7 +210,9 @@
     <ClInclude Include="XEngine.h" />
   </ItemGroup>
   <ItemGroup>
+    <ClCompile Include="AssetBundleReader.cpp" />
     <ClCompile Include="AssetManager.cpp" />
+    <ClCompile Include="Bounding.cpp" />
     <ClCompile Include="ChunkAllocator.cpp" />
     <ClCompile Include="Component.cpp" />
     <ClCompile Include="dllmain.cpp" />
@@ -221,6 +226,7 @@
     <ClCompile Include="GLShaderData.cpp" />
     <ClCompile Include="GLContext.cpp" />
     <ClCompile Include="ListAllocator.cpp" />
+    <ClCompile Include="MeshAsset.cpp" />
     <ClCompile Include="pch.cpp">
       <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">Create</PrecompiledHeader>
       <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">Create</PrecompiledHeader>

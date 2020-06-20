@@ -8,6 +8,7 @@
 #include "ECS.h"
 #include "HardwareInterfaces.h"
 #include "WorkerManager.h"
+#include "AssetManager.h"
 
 enum class LogMessageType
 {
@@ -34,6 +35,10 @@ public:
 	XENGINEAPI void SaveProperties(); 
 	XENGINEAPI void LoadProperties();
 
+	XENGINEAPI std::string& GetRootPath();
+
+	XENGINEAPI UniqueId& GetInstanceId();
+
 	XENGINEAPI float GetTime(UniqueId id);
 	XENGINEAPI void SetGlobalTimeScale(float scale);
 	XENGINEAPI void SetLocalTimeScale(UniqueId id, float scale);
@@ -51,8 +56,7 @@ public:
 	XENGINEAPI Scene *GetScene();
 	XENGINEAPI SubsystemManager *GetSubsystemManager();
 	XENGINEAPI ECSRegistrar *GetECSRegistrar();
-
-	XENGINEAPI WorkerManager *GetWorkerManager();
+	XENGINEAPI AssetManager *GetAssetManager();
 
 	XENGINEAPI static void InitializeEngine(std::string name, int threadCount, bool defaultSystems = true, std::string rootPath = "");
 	XENGINEAPI static XEngine& GetInstance();
@@ -73,6 +77,7 @@ public:
 	int GetMaxFPS() { return m_maxFps; }
 	int GetAverageFrametime() { return m_frameTimeAvg; }
 	int GetFPSAverageInterval() { return m_fpsAvgInterval; }
+	int GetAverageFramerate() { return m_fps; }
 
 	std::string GetName() { return m_name; }
 
@@ -80,6 +85,13 @@ private:
 	void Tick(float deltaTime);
 	void Init();
 	void Cleanup();
+
+	UniqueId m_engineInstanceId;
+	
+	void RunECSThread(int index);
+	std::thread **m_ecsThreads;
+	std::atomic_int m_ecsQueued;
+	float m_ecsDt;
 
 	static XEngine *m_engineInstance;
 	std::string m_rootPath;
@@ -97,7 +109,7 @@ private:
 	ECSRegistrar *m_ecsRegistrar = nullptr;
 	Scene *m_scene;
 	SubsystemManager *m_sysManager;
-	WorkerManager *m_workerManager;
+	AssetManager *m_assetManager;
 
 	std::map<UniqueId, glm::ivec2> m_timeAndScale;
 	float m_globalTimeScale = 1.f;
@@ -111,3 +123,5 @@ private:
 	std::map<HardwareInterfaceType, HardwareInterface *> m_hwInterfaces;
 	std::map<HardwareInterfaceType, bool> m_excludeFromFrame;
 };
+
+XENGINEAPI extern XEngine *XEngineInstance;

@@ -34,6 +34,9 @@
     <Filter Include="Asset Management">
       <UniqueIdentifier>{2a8e8c78-52b6-452f-90a2-9015e5621e99}</UniqueIdentifier>
     </Filter>
+    <Filter Include="Geometry">
+      <UniqueIdentifier>{009f7e3b-e736-44bd-b4a7-66fd76242095}</UniqueIdentifier>
+    </Filter>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="framework.h">
@@ -150,6 +153,15 @@
     <ClInclude Include="ListAllocator.h">
       <Filter>Allocators</Filter>
     </ClInclude>
+    <ClInclude Include="AssetBundleReader.h">
+      <Filter>Asset Management</Filter>
+    </ClInclude>
+    <ClInclude Include="MeshAsset.h">
+      <Filter>Asset Management</Filter>
+    </ClInclude>
+    <ClInclude Include="Bounding.h">
+      <Filter>Geometry</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="ChunkAllocator.cpp">
@@ -217,6 +229,15 @@
     </ClCompile>
     <ClCompile Include="ListAllocator.cpp">
       <Filter>Allocators</Filter>
+    </ClCompile>
+    <ClCompile Include="AssetBundleReader.cpp">
+      <Filter>Asset Management</Filter>
+    </ClCompile>
+    <ClCompile Include="MeshAsset.cpp">
+      <Filter>Asset Management</Filter>
+    </ClCompile>
+    <ClCompile Include="Bounding.cpp">
+      <Filter>Geometry</Filter>
     </ClCompile>
   </ItemGroup>
   <ItemGroup>

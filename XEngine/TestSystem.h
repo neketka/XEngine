@@ -8,8 +8,11 @@ public:
 	virtual void Destroy() override;
 	virtual std::string GetName() override;
 	virtual std::vector<std::string> GetComponentTypes() override;
+	virtual int GetMaxPostThreadCount() { return 0; }
 
 	virtual void Update(float deltaTime, ComponentDataIterator& data) override;
+	virtual void AfterEntityUpdate(float deltaTime) override;
+	virtual void PostUpdate(float deltaTime, int threadIndex) override;
 private:
 	GraphicsCommandBuffer *m_cmdTopBuffer;
 

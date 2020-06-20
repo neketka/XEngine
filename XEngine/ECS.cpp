@@ -16,6 +16,12 @@ void ECSRegistrar::AddSystem(ISystem *system)
 	system->SetSubsystemManager(XEngine::GetInstance().GetSubsystemManager());
 }
 
+void ECSRegistrar::AddSystems(std::vector<ISystem *> systems)
+{
+	for (ISystem *s : systems)
+		AddSystem(s);
+}
+
 ISystem *ECSRegistrar::GetSystem(std::string name)
 {
 	return m_systems[name];

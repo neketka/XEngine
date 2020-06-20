@@ -352,7 +352,7 @@ public:
 	virtual GraphicsShader *CreateShader(GraphicsSpecificShaderCode *code) = 0;
 	virtual GraphicsRenderPass *CreateRenderPass(GraphicsRenderPassState& state) = 0;
 	virtual std::vector<GraphicsQuery *> CreateQueries(int count, GraphicsQueryType type) = 0;
-	virtual GraphicsSyncObject *CreateSync() = 0;
+	virtual GraphicsSyncObject *CreateSync(bool gpuQueueSync) = 0;
 	virtual GraphicsImageView *GetScreenImageView() = 0;
 	virtual glm::ivec2 GetScreenSize() = 0;
 	virtual GraphicsSpecificStructure& GetSpecificStructure() = 0;
@@ -362,4 +362,5 @@ public:
 	virtual void UpdateShaderBufferResourceInstance(GraphicsShaderResourceInstance *instance, GraphicsMemoryBuffer *buffer, int offset, int range) = 0;
 	virtual void SubmitCommands(GraphicsCommandBuffer *commands, GraphicsQueueType queue) = 0;
 	virtual void Present() = 0;
+	virtual void SyncWithCommandSubmissionThread() = 0;
 };

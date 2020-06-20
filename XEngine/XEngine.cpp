@@ -3,14 +3,16 @@
 
 #include "TestSystem.h"
 
+XEngine *XEngineInstance;
 XEngine *XEngine::m_engineInstance;
 
 void XEngine::InitializeEngine(std::string name, int threadCount, bool defaultSystems, std::string rootPath)
 {
-	m_engineInstance = new XEngine;
+	XEngineInstance = m_engineInstance = new XEngine;
 	m_engineInstance->m_name = name;
-	m_engineInstance->m_maxECSThreads = std::max(0, threadCount - 1);
-	m_engineInstance->m_workerManager = new WorkerManager(threadCount);
+	m_engineInstance->m_maxECSThreads = std::max(0, threadCount - 2);
+	m_engineInstance->m_rootPath = rootPath;
+	m_engineInstance->m_ecsThreads = new std::thread *[m_engineInstance->m_maxECSThreads];
 	
 	// Testing below
 	m_engineInstance->m_ecsRegistrar->RegisterComponent<TestComponent>();
@@ -20,7 +22,7 @@ void XEngine::InitializeEngine(std::string name, int threadCount, bool defaultSy
 	scene->GetSystemManager()->AddSystem("TestSystem");
 	m_engineInstance->m_ecsRegistrar->GetSystem("TestSystem")->SetEnabled(true);
 
-	for (int i = 0; i < 10; ++i)
+	for (int i = 0; i < 800; ++i)
 		scene->GetEntityManager()->CreateEntity({ "TestComponent" });
 
 	m_engineInstance->SetScene(scene);
@@ -33,6 +35,8 @@ XEngine& XEngine::GetInstance()
 
 void XEngine::DoIdleWork()
 {
+	//std::this_thread::sleep_for(std::chrono::milliseconds(0));
+	std::this_thread::yield();
 }
 
 void XEngine::AddInterface(HardwareInterface *interface, HardwareInterfaceType type)
@@ -52,22 +56,28 @@ void XEngine::AddInterface(HardwareInterface *interface, HardwareInterfaceType t
 
 XEngine::XEngine() : m_scene(nullptr)
 {
+	m_engineInstanceId = GenerateID();
+	m_assetManager = new AssetManager(1e8, 2e9); // Hardcoded numbers
 	m_sysManager = new SubsystemManager;
 	m_ecsRegistrar = new ECSRegistrar;
 }
 
 XEngine::~XEngine()
 {
+	delete m_sysManager;
+	delete m_ecsRegistrar;
+	delete m_assetManager;
+	delete[] m_ecsThreads;
 }
 
 void XEngine::Run()
 {
-	Init();
 	float sumOfTimeForInterval = 0;
 	float deltaTime = 0;
 	int intervalCount = 0;
 	m_beginTime = std::chrono::high_resolution_clock::now();
 	m_running = true;
+	Init();
 	while (m_running)
 	{
 		std::chrono::time_point begin = std::chrono::high_resolution_clock::now();
@@ -161,6 +171,16 @@ void XEngine::SaveProperties() // Do not implement, load on start, save on stop
 
 void XEngine::LoadProperties()
 {
+}
+
+std::string& XEngine::GetRootPath()
+{
+	return m_rootPath;
+}
+
+UniqueId& XEngine::GetInstanceId()
+{
+	return m_engineInstanceId;
 }
 
 float XEngine::GetTime(UniqueId id)
@@ -260,15 +280,13 @@ ECSRegistrar *XEngine::GetECSRegistrar()
 	return m_ecsRegistrar;
 }
 
-WorkerManager *XEngine::GetWorkerManager()
+AssetManager *XEngine::GetAssetManager()
 {
-	return m_workerManager;
+	return m_assetManager;
 }
 
 void XEngine::Tick(float deltaTime)
 {
-	m_workerManager->CheckForFree();
-
 	for (auto kp : m_hwInterfaces)
 	{
 		if (kp.second && kp.second->GetStatus(kp.first) == HardwareStatus::Initialized && !m_excludeFromFrame[kp.first])
@@ -278,6 +296,8 @@ void XEngine::Tick(float deltaTime)
 	if (m_scene)
 	{
 		m_sysManager->ScheduleJobs();
+		m_ecsDt = deltaTime;
+		m_ecsQueued = m_maxECSThreads;
 		m_sysManager->ExecuteJobs(0, deltaTime); // Figure out threading later
 		m_scene->GetComponentManager()->ExecuteSingleThreadOps();
 	}
@@ -289,7 +309,7 @@ void XEngine::Tick(float deltaTime)
 	}
 }
 
-std::map<HardwareInterfaceType, std::string> interfaceToName{
+std::map<HardwareInterfaceType, std::string> interfaceToName {
 	{ HardwareInterfaceType::Display, "display" }, { HardwareInterfaceType::AudioRecording, "audio recording" }, { HardwareInterfaceType::AudioRendering, "audio rendering" }, { HardwareInterfaceType::Joystick, "joystick" },
 	{ HardwareInterfaceType::Keyboard, "keyboard" }, { HardwareInterfaceType::Mouse, "mouse" }, { HardwareInterfaceType::Network, "network" }, { HardwareInterfaceType::VideoRecording, "video recording" }
 };
@@ -307,13 +327,23 @@ void XEngine::Init()
 		}
 	}
 
+	m_ecsQueued = 0;
+	for (int i = 0; i < m_maxECSThreads; ++i)
+	{
+		std::thread *t = new std::thread(&XEngine::RunECSThread, this, i + 1);
+		m_ecsThreads[i] = t;
+	}
+
 	m_ecsRegistrar->InitSystems();
 }
 
 void XEngine::Cleanup()
 {
-	delete m_sysManager;
-	delete m_ecsRegistrar;
+	for (int i = 0; i < m_maxECSThreads; ++i)
+	{
+		m_ecsThreads[i]->join();
+		delete m_ecsThreads[i];
+	}
 
 	for (auto kp : m_hwInterfaces)
 	{
@@ -328,5 +358,18 @@ void XEngine::Cleanup()
 	{
 		m_scene->DisableScene();
 		delete m_scene;
+	}
+}
+
+void XEngine::RunECSThread(int index)
+{
+	while (m_running)
+	{
+		if (m_ecsQueued > 0)
+		{
+			--m_ecsQueued;
+			m_sysManager->ExecuteJobs(index, m_ecsDt);
+		}
+		else DoIdleWork();
 	}
 }

@@ -6,16 +6,21 @@
 
 using ListPointer = unsigned __int64;
 
-class ListEntryHeader
+class ListMemoryPointer
 {
 public:
-	ListEntryHeader(UniqueId id, ListPointer ptr, int size, int padding, int alignment) :
-		Id(id), Pointer(ptr), Size(size), PaddingSize(padding), Alignment(alignment) {}
-	UniqueId Id;
 	ListPointer Pointer;
+};
+
+class ListEntryHeader : public ListMemoryPointer
+{
+public:
+	ListEntryHeader *Prev;
+	ListEntryHeader *Next;
+	int Index;
+	int Padding;
 	int Size;
-	short PaddingSize;
-	short Alignment;
+	int Alignment;
 };
 
 class MoveData
@@ -32,21 +37,32 @@ public:
 	ListAllocator(int size, int maxAllocs);
 	~ListAllocator();
 
-	UniqueId AllocateMemory(int size, int alignment);
-	void DeallocateMemory(UniqueId block);
-	ListPointer GetPointer(UniqueId block);
+	ListMemoryPointer *AllocateMemory(int size, int alignment);
+	void DeallocateMemory(ListMemoryPointer *ptr);
+
+	int GetAllocationSize(ListMemoryPointer *ptr);
+
+	void ShrinkToFit(int extraMemory);
+	void SetSize(int maxSize);
+
+	int GetMaxSize();
+	int GetFreeSpace();
 
 	void SetMoveCallback(std::function<void(MoveData&)> move);
 private:
 	void Defragment();
 	
-	std::unordered_map<UniqueId, ListEntryHeader *> m_pointers;
-	std::vector<ListEntryHeader> m_headers;
+	std::vector<ListEntryHeader> m_headerLinks;
+	std::vector<int> m_freeList;
+
+	ListEntryHeader *m_first = nullptr;
+	ListEntryHeader *m_last = nullptr;
 
 	int m_pointer;
 
 	int m_maxSize;
 	int m_maxHeaders;
+	int m_freeSpace;
 
 	std::function<void(MoveData&)> m_move;
 };
