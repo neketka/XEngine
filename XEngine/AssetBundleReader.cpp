@@ -53,8 +53,9 @@ void AssetBundleReader::LoadAssetHeadersFromHeader(AssetBundleHeader& header, st
 		stream.seekg(header.ByteSize + pair.second.OffsetFromZero, std::istream::beg);
 		stream.read(reinterpret_cast<char *>(&preheader), sizeof(AssetDescriptorPreHeader));
 
-		headersDest.push_back(manager->RequestLoadSpace(preheader.HeaderSize));
-		stream.read(manager->GetLoadMemory<char>(headersDest.back()), preheader.HeaderSize);
+		headersDest.push_back(manager->GetLoadMemory().RequestSpace(preheader.HeaderSize));
+		PinnedLocalMemory<char> header = manager->GetLoadMemory().GetMemory<char>(headersDest.back());
+		stream.read(header.GetData(), preheader.HeaderSize);
 
 		++index;
 	}
@@ -79,9 +80,9 @@ void AssetBundleReader::LoadAssetDataFromHeader(AssetBundleHeader& header, std::
 	int index = 0;
 	for (AssetLoadRange& range : ranges)
 	{
-		char *content = manager->GetLoadMemory<char>(dest[index]);
+		PinnedLocalMemory<char> content = manager->GetLoadMemory().GetMemory<char>(dest[index]);
 		stream.seekg(initialPosition + range.ByteOffset, std::istream::beg);
-		stream.read(content, range.Size);
+		stream.read(content.GetData(), range.Size);
 		++index;
 	}
 
@@ -126,12 +127,12 @@ void AssetBundleReader::ExportAssetBundleToDisc(std::string filePath, std::vecto
 	for (int i = 0; i < preHeaders.size(); ++i)
 	{
 		AssetDescriptorPreHeader& preHeader = preHeaders[i];
-		LoadMemoryPointer& header = headers[i];
-		LoadMemoryPointer& content = contents[i];
+		PinnedLocalMemory<char> header = manager->GetLoadMemory().GetMemory<char>(headers[i]);
+		PinnedLocalMemory<char> content = manager->GetLoadMemory().GetMemory<char>(contents[i]);
 
 		stream.write(reinterpret_cast<char *>(&preHeader), sizeof(AssetDescriptorPreHeader));
-		stream.write(manager->GetLoadMemory<char>(header), preHeader.HeaderSize);
-		stream.write(manager->GetLoadMemory<char>(content), preHeader.AssetSize);
+		stream.write(header.GetData(), preHeader.HeaderSize);
+		stream.write(content.GetData(), preHeader.AssetSize);
 	}
 
 	stream.flush();

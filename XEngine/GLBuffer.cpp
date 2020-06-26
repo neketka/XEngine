@@ -2,7 +2,7 @@
 #include "GLBuffer.h"
 #include "GLContext.h"
 
-GLBuffer::GLBuffer(GraphicsContext *context, int byteSize, GraphicsMemoryTypeBit mem) : m_size(byteSize), m_context(context)
+GLBuffer::GLBuffer(GraphicsContext *context, unsigned long long byteSize, GraphicsMemoryTypeBit mem) : m_size(byteSize), m_context(context)
 {
 	m_bits = 0;
 	if (!(mem & GraphicsMemoryTypeBit::DeviceResident))
@@ -25,11 +25,6 @@ GLBuffer::~GLBuffer()
 	});
 }
 
-void GLBuffer::MapBuffer(bool coherent)
-{
-	MapBuffer(0, m_size, coherent);
-}
-
 void GLBuffer::UnmapBuffer()
 {
 	m_request.Reset();
@@ -39,7 +34,7 @@ void GLBuffer::UnmapBuffer()
 	dynamic_cast<GLContext *>(m_context)->MapRequest(this);
 }
 
-void GLBuffer::InvalidateMapped(int offset, int size)
+void GLBuffer::InvalidateMapped(unsigned long long offset, int size)
 {
 	m_request.Reset();
 	m_request.RequestInvalidate = true;
@@ -60,22 +55,29 @@ void GLBuffer::InitInternal()
 	glNamedBufferStorage(m_id, m_size, nullptr, m_bits);
 }
 
-void GLBuffer::MapBuffer(int offset, int length, bool coherent)
+void GLBuffer::MapBuffer(unsigned long long offset, int length, bool coherent, bool writeOnly)
 {
 	m_request.Reset();
 	m_request.RequestMap = true;
 	m_request.Offset = offset;
 	m_request.Length = length;
 
-	m_request.Bits = GL_MAP_READ_BIT | GL_MAP_WRITE_BIT | GL_MAP_PERSISTENT_BIT;
+	m_request.Bits = GL_MAP_PERSISTENT_BIT;
+	if (writeOnly)
+		m_request.Bits |= GL_MAP_WRITE_BIT | GL_MAP_UNSYNCHRONIZED_BIT;
+	else
+		m_request.Bits |= GL_MAP_READ_BIT | GL_MAP_WRITE_BIT;
+
 	if (coherent)
-		m_request.Bits |= GL_MAP_COHERENT_BIT | GL_MAP_FLUSH_EXPLICIT_BIT;
+		m_request.Bits |= GL_MAP_COHERENT_BIT;
+	else
+		m_request.Bits |= GL_MAP_FLUSH_EXPLICIT_BIT;
 
 	dynamic_cast<GLContext *>(m_context)->MapRequest(this);
 	m_mapped = m_request.Mapped;
 }
 
-void GLBuffer::FlushMapped(int offset, int size)
+void GLBuffer::FlushMapped(unsigned long long offset, int size)
 {
 	m_request.Reset();
 	m_request.RequestFlush = true;

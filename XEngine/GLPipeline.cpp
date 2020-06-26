@@ -105,6 +105,8 @@ void GLPipeline::BindState()
 		else
 			glDisable(GL_RASTERIZER_DISCARD);
 	}
+	else
+		glEnable(GL_RASTERIZER_DISCARD);
 
 	if (m_state.RenderTessellationState.EnableState)
 	{
@@ -138,6 +140,11 @@ void GLPipeline::BindState()
 
 		glStencilMaskSeparate(GL_FRONT, m_state.DepthStencilState.StencilFront.WriteMask);
 		glStencilMaskSeparate(GL_BACK, m_state.DepthStencilState.StencilBack.WriteMask);
+	}
+	else
+	{
+		glDisable(GL_DEPTH_TEST);
+		glDisable(GL_STENCIL_TEST);
 	}
 
 	// Blending

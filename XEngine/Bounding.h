@@ -27,5 +27,4 @@ class BoundingFrustum
 public:
 	BoundingFrustum(glm::mat4 mvp);
 private:
-
 };

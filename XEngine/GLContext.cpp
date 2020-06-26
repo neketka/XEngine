@@ -42,7 +42,7 @@ GLContext::~GLContext()
 	delete m_glSubmissionThread;
 }
 
-std::vector<GraphicsCommandBuffer *> GLContext::CreateGraphicsCommandBuffers(int count, bool subBuffer, bool graphics, bool compute)
+std::vector<GraphicsCommandBuffer *> GLContext::CreateGraphicsCommandBuffers(int count, bool graphics, bool compute, bool transfer)
 {
 	std::vector<GraphicsCommandBuffer *> buffers;
 	buffers.reserve(count);
@@ -67,7 +67,7 @@ GraphicsComputePipeline *GLContext::CreateComputePipeline(GraphicsComputePipelin
 	return p;
 }
 
-GraphicsMemoryBuffer *GLContext::CreateBuffer(int byteSize, BufferUsageBit usage, GraphicsMemoryTypeBit mem)
+GraphicsMemoryBuffer *GLContext::CreateBuffer(unsigned long long byteSize, BufferUsageBit usage, GraphicsMemoryTypeBit mem)
 {
 	GLBuffer *b = new GLBuffer(this, byteSize, mem);
 	m_queuedInitializers.push(b);

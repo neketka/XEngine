@@ -33,6 +33,7 @@ public:
 	virtual std::vector<std::string> GetComponentTypes() = 0;
 	virtual std::vector<std::string> GetReadOnlyComponentTypes() { return {}; }
 
+	virtual void BeforeEntityUpdate(float deltaTime) {}
 	virtual void Update(float deltaTime, ComponentDataIterator& data) { }
 	virtual void AfterEntityUpdate(float deltaTime) {}
 	virtual void PostUpdate(float deltaTime, int threadIndex) { }

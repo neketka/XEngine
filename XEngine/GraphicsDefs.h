@@ -39,6 +39,7 @@ class GraphicsSyncObject
 public:
 	virtual ~GraphicsSyncObject() = 0;
 	virtual bool Wait(unsigned long long nanoSecTimeout) = 0;
+	virtual void Reset() = 0;
 	virtual bool GetCurrentStatus() = 0;
 };
 
@@ -96,12 +97,11 @@ class GraphicsMemoryBuffer
 {
 public:
 	virtual ~GraphicsMemoryBuffer() = 0;
-	virtual void MapBuffer(bool coherent) = 0;
-	virtual void MapBuffer(int offset, int length, bool coherent) = 0;
+	virtual void MapBuffer(unsigned long long offset, int length, bool coherent, bool writeOnly) = 0;
 	virtual void UnmapBuffer() = 0;
 	virtual void *GetMappedPointer() = 0;
-	virtual void FlushMapped(int offset, int size) = 0;
-	virtual void InvalidateMapped(int offset, int size) = 0;
+	virtual void FlushMapped(unsigned long long offset, int size) = 0;
+	virtual void InvalidateMapped(unsigned long long offset, int size) = 0;
 };
 
 
@@ -315,6 +315,8 @@ public:
 	virtual void SignalFence(GraphicsSyncObject *sync) = 0;
 	virtual void ResetFence(GraphicsSyncObject *sync) = 0;
 
+	virtual void SynchronizeMemory(MemoryBarrierBit from, MemoryBarrierBit to, bool byRegion) = 0;
+
 	virtual void ClearColor(GraphicsImageObject *image, glm::vec4 color, int level, int layer) = 0;
 	virtual void ClearDepthStencil(GraphicsImageObject *image, float depth, char stencil) = 0;
 
@@ -323,12 +325,12 @@ public:
 
 	virtual void UpdateBufferData(GraphicsMemoryBuffer *buffer, int offset, int size, void *data) = 0;
 
-	virtual void CopyBufferToImage(GraphicsMemoryBuffer *srcBuffer, GraphicsImageObject *destImage, std::vector<GraphicsBufferImageCopyRegion> regions) = 0;
+	virtual void CopyBufferToImageWithConversion(GraphicsMemoryBuffer *srcBuffer, VectorDataFormat srcFormat, GraphicsImageObject *destImage, std::vector<GraphicsBufferImageCopyRegion> regions) = 0;
 	virtual void CopyImageToBuffer(GraphicsImageObject *srcImage, GraphicsMemoryBuffer *destBuffer, std::vector<GraphicsBufferImageCopyRegion> regions) = 0;
 
 	virtual void CopyImageToImage(GraphicsImageObject *srcImage, GraphicsImageObject *destImage, glm::ivec3 srcOffset, glm::ivec3 destOffset, glm::ivec3 size,
 		int srcLevel, int destLevel, int layers, bool color, bool depth, bool stencil) = 0;
-	virtual void CopyBufferToBuffer(GraphicsMemoryBuffer *src, GraphicsMemoryBuffer *dest, int srcOffset, int destOffset, int size) = 0;
+	virtual void CopyBufferToBuffer(GraphicsMemoryBuffer *src, GraphicsMemoryBuffer *dest, unsigned long long srcOffset, unsigned long long destOffset, int size) = 0;
 
 	virtual void BeginRecording() = 0;
 	virtual void StopRecording() = 0;
@@ -340,10 +342,10 @@ class GraphicsContext
 {
 public:
 	virtual ~GraphicsContext() {}
-	virtual std::vector<GraphicsCommandBuffer *> CreateGraphicsCommandBuffers(int count, bool subBuffer, bool graphics, bool compute) = 0;
+	virtual std::vector<GraphicsCommandBuffer *> CreateGraphicsCommandBuffers(int count, bool graphics, bool compute, bool transfer) = 0;
 	virtual GraphicsRenderPipeline *CreateGraphicsPipeline(GraphicsRenderPipelineState& state) = 0;
 	virtual GraphicsComputePipeline *CreateComputePipeline(GraphicsComputePipelineState& state) = 0;
-	virtual GraphicsMemoryBuffer *CreateBuffer(int byteSize, BufferUsageBit usage, GraphicsMemoryTypeBit mem) = 0;
+	virtual GraphicsMemoryBuffer *CreateBuffer(unsigned long long byteSize, BufferUsageBit usage, GraphicsMemoryTypeBit mem) = 0;
 	virtual GraphicsImageObject *CreateImage(ImageType type, VectorDataFormat format, glm::ivec3 size, int miplevels, ImageUsageBit usage) = 0;
 	virtual GraphicsRenderTarget *CreateRenderTarget(std::vector<GraphicsImageView *>&& attachments, GraphicsImageView *depthStencil, GraphicsRenderPass *renderPass, int width, int height, int layers) = 0;
 	virtual GraphicsShaderDataSet *CreateShaderDataSet(std::vector<GraphicsShaderResourceViewData>&& resourceViews, std::vector<GraphicsShaderConstantData>&& constantData) = 0;

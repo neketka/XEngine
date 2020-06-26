@@ -45,15 +45,16 @@ public:
 	virtual void WaitOnFence(GraphicsSyncObject *sync) override;
 	virtual void SignalFence(GraphicsSyncObject *sync) override;
 	virtual void ResetFence(GraphicsSyncObject *sync) override;
+	virtual void SynchronizeMemory(MemoryBarrierBit from, MemoryBarrierBit to, bool byRegion) override;
 	virtual void ClearColor(GraphicsImageObject *image, glm::vec4 color, int level, int layer) override;
 	virtual void ClearDepthStencil(GraphicsImageObject *image, float depth, char stencil) override;
 	virtual void ClearAttachmentsColor(int index, glm::vec4 color) override;
 	virtual void ClearAttachmentsDepthStencil(int index, float depth, char stencil) override;
 	virtual void UpdateBufferData(GraphicsMemoryBuffer *buffer, int offset, int size, void *data) override;
-	virtual void CopyBufferToImage(GraphicsMemoryBuffer *srcBuffer, GraphicsImageObject *destImage, std::vector<GraphicsBufferImageCopyRegion> regions) override;
+	virtual void CopyBufferToImageWithConversion(GraphicsMemoryBuffer *srcBuffer, VectorDataFormat srcFormat, GraphicsImageObject *destImage, std::vector<GraphicsBufferImageCopyRegion> regions) override;
 	virtual void CopyImageToBuffer(GraphicsImageObject *srcImage, GraphicsMemoryBuffer *destBuffer, std::vector<GraphicsBufferImageCopyRegion> regions) override;
 	virtual void CopyImageToImage(GraphicsImageObject *srcImage, GraphicsImageObject *destImage, glm::ivec3 srcOffset, glm::ivec3 destOffset, glm::ivec3 size, int srcLevel, int destLevel, int layers, bool color, bool depth, bool stencil) override;
-	virtual void CopyBufferToBuffer(GraphicsMemoryBuffer *src, GraphicsMemoryBuffer *dest, int srcOffset, int destOffset, int size) override;
+	virtual void CopyBufferToBuffer(GraphicsMemoryBuffer *src, GraphicsMemoryBuffer *dest, unsigned long long srcOffset, unsigned long long destOffset, int size) override;
 	virtual void BeginRecording() override;
 	virtual void StopRecording() override;
 	virtual void ExecuteSubCommandBuffer(GraphicsCommandBuffer *commandBuffer) override;

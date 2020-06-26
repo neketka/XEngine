@@ -3,13 +3,8 @@
 
 #include <filesystem>
 
-AssetManager::AssetManager(int loadMemSize, int assetMemSize) : m_loadMemoryAlloc(loadMemSize, 4096), 
-	m_assetMemoryAlloc(assetMemSize, 1e6)
+AssetManager::AssetManager(int loadMemSize, int assetMemSize) : m_loadMemory(loadMemSize, 4096, true), m_assetMemory(assetMemSize, 1e6, true)
 {
-	m_loadMemoryAlloc.SetMoveCallback(std::bind(&AssetManager::MoveLoadMemory, this, std::placeholders::_1));
-	m_assetMemoryAlloc.SetMoveCallback(std::bind(&AssetManager::MoveAssetMemory, this, std::placeholders::_1));
-	m_loadMemory = std::malloc(loadMemSize);
-	m_assetMemory = std::malloc(assetMemSize);
 	m_running = true;
 	m_assetLoadingThread = new std::thread(&AssetManager::PerformThreadTasks, this);
 }
@@ -23,8 +18,6 @@ AssetManager::~AssetManager()
 		delete loaderPair.second;
 	for (auto importerPair : m_importers)
 		delete importerPair.second;
-	std::free(m_loadMemory);
-	std::free(m_assetMemory);
 }
 
 void AssetManager::AddAsset(std::string path, IAsset *asset)
@@ -83,7 +76,7 @@ void AssetManager::PreloadAssetBundle(std::string filePath)
 		IAsset *asset = loader->CreateEmpty(id);
 		loader->Preload(asset, ptr);
 
-		FreeLoadSpace(ptr);
+		m_loadMemory.FreeSpace(ptr);
 	}
 }
 
@@ -93,26 +86,6 @@ void AssetManager::ExportAssetBundleToDisc(std::string filePath, std::vector<Uni
 		m_exportRequests.push(AssetExportRequest(filePath, assets));
 	else
 		ExportAssetBundleToDisc(filePath, assets);
-}
-
-AssetMemoryPointer AssetManager::RequestAssetSpace(int bytes)
-{
-	return m_assetMemoryAlloc.AllocateMemory(bytes, 0);
-}
-
-void AssetManager::FreeAssetSpace(AssetMemoryPointer ptr)
-{
-	m_assetMemoryAlloc.DeallocateMemory(ptr);
-}
-
-LoadMemoryPointer AssetManager::RequestLoadSpace(int bytes)
-{
-	return m_loadMemoryAlloc.AllocateMemory(bytes, 0);
-}
-
-void AssetManager::FreeLoadSpace(LoadMemoryPointer ptr)
-{
-	m_loadMemoryAlloc.DeallocateMemory(ptr);
 }
 
 void AssetManager::RegisterImporter(IFormatImporter *importer)
@@ -180,10 +153,17 @@ void AssetManager::PerformThreadTasks()
 		while (m_loadRequests.try_pop(request))
 		{
 			std::vector<AssetLoadRange> loadRanges = request.Loader->Load(request.Asset, request.LoadData);
+
+			if (loadRanges.size() == 0)
+			{
+				m_loadRequests.push(request);
+				continue;
+			}
+
 			std::vector<LoadMemoryPointer> loadMemories(loadRanges.size());
 			for (int i = 0; i < loadRanges.size(); ++i)
 			{
-				loadMemories[i] = RequestLoadSpace(loadRanges[i].Size);
+				loadMemories[i] = m_loadMemory.RequestSpace(loadRanges[i].Size);
 			}
 
 			StoredAssetPtr& stored = m_assets[request.Asset->GetId()];
@@ -199,16 +179,6 @@ void AssetManager::PerformThreadTasks()
 		}
 		XEngineInstance->DoIdleWork();
 	}
-}
-
-void *AssetManager::GetAssetMemoryInternal(AssetMemoryPointer ptr)
-{
-	return reinterpret_cast<char *>(m_assetMemory) + ptr->Pointer;
-}
-
-void *AssetManager::GetLoadMemoryInternal(LoadMemoryPointer ptr)
-{
-	return reinterpret_cast<char *>(m_loadMemory) + ptr->Pointer;
 }
 
 void AssetManager::ExportAssetBundleToDisc(std::string filePath, std::vector<UniqueId>& assets)
@@ -241,19 +211,9 @@ void AssetManager::ExportAssetBundleToDisc(std::string filePath, std::vector<Uni
 
 	for (int i = 0; i < assets.size(); ++i)
 	{
-		FreeLoadSpace(headers[i]);
-		FreeLoadSpace(contents[i]);
+		m_loadMemory.FreeSpace(headers[i]);
+		m_loadMemory.FreeSpace(contents[i]);
 	}
-}
-
-void AssetManager::MoveAssetMemory(MoveData& mv)
-{
-	std::memmove(reinterpret_cast<char *>(m_assetMemory) + mv.DestIndex, reinterpret_cast<char *>(m_assetMemory) + mv.SrcIndex, mv.Size);
-}
-
-void AssetManager::MoveLoadMemory(MoveData& mv)
-{
-	std::memmove(reinterpret_cast<char *>(m_loadMemory) + mv.DestIndex, reinterpret_cast<char *>(m_loadMemory) + mv.SrcIndex, mv.Size);
 }
 
 std::vector<std::string> AssetManager::MergeAssetBundles(std::vector<std::string>& bundles, unsigned long long maxSize)
@@ -265,6 +225,16 @@ std::vector<std::string> AssetManager::MergeAssetBundles(std::vector<std::string
 void AssetManager::DeleteBundleAssetsFromMemory(std::string filePath)
 {
 	// TODO: IMPLEMENT
+}
+
+LocalMemoryAllocator& AssetManager::GetAssetMemory()
+{
+	return m_assetMemory;
+}
+
+LocalMemoryAllocator& AssetManager::GetLoadMemory()
+{
+	return m_loadMemory;
 }
 
 void AssetManager::CleanUnusedMemory()

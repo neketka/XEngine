@@ -21,10 +21,10 @@ class GLContext : public GraphicsContext
 public:
 	GLContext(SDL_Window *window);
 	~GLContext();
-	virtual std::vector<GraphicsCommandBuffer *> CreateGraphicsCommandBuffers(int count, bool subBuffer, bool graphics, bool compute) override;
+	virtual std::vector<GraphicsCommandBuffer *> CreateGraphicsCommandBuffers(int count, bool graphics, bool compute, bool transfer) override;
 	virtual GraphicsRenderPipeline *CreateGraphicsPipeline(GraphicsRenderPipelineState& state) override;
 	virtual GraphicsComputePipeline *CreateComputePipeline(GraphicsComputePipelineState& state) override;
-	virtual GraphicsMemoryBuffer *CreateBuffer(int byteSize, BufferUsageBit usage, GraphicsMemoryTypeBit mem) override;
+	virtual GraphicsMemoryBuffer *CreateBuffer(unsigned long long byteSize, BufferUsageBit usage, GraphicsMemoryTypeBit mem) override;
 	virtual GraphicsImageObject *CreateImage(ImageType type, VectorDataFormat format, glm::ivec3 size, int miplevels, ImageUsageBit usage) override;
 	virtual GraphicsRenderTarget *CreateRenderTarget(std::vector<GraphicsImageView *>&& attachments, GraphicsImageView *depthStencil, GraphicsRenderPass *renderPass, int width, int height, int layers) override;
 	virtual GraphicsShaderDataSet *CreateShaderDataSet(std::vector<GraphicsShaderResourceViewData>&& resourceViews, std::vector<GraphicsShaderConstantData>&& constantData) override;
@@ -75,5 +75,6 @@ private:
 	concurrency::concurrent_queue<GLBuffer *> m_queuedMaps;
 
 	std::thread *m_glSubmissionThread;
+
 	std::atomic_int m_framesInProgress;
 };

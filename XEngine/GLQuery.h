@@ -29,6 +29,7 @@ public:
 	void ResetSignaled() { m_signaled = false; }
 	unsigned long long GetWaitTime() { return m_curWaitTime; }
 	bool IsWaiting() { return m_waiting; }
+	virtual void Reset() override;
 
 	virtual bool Wait(unsigned long long nanoSecTimeout) override;
 	virtual bool GetCurrentStatus() override;

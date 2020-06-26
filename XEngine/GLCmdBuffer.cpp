@@ -447,6 +447,49 @@ void GLCmdBuffer::ResetFence(GraphicsSyncObject *sync)
 		});
 }
 
+void GLCmdBuffer::SynchronizeMemory(MemoryBarrierBit from, MemoryBarrierBit to, bool byRegion)
+{
+	GLbitfield bits = 0;
+	if (byRegion)
+	{
+		if (to & MemoryBarrierBit::RenderTargetRead)
+			bits |= GL_FRAMEBUFFER_BARRIER_BIT;
+		if (to & MemoryBarrierBit::ShaderReadBit)
+			bits |= GL_SHADER_STORAGE_BARRIER_BIT | GL_SHADER_IMAGE_ACCESS_BARRIER_BIT | GL_QUERY_BUFFER_BARRIER_BIT;
+		if (to & MemoryBarrierBit::UniformBufferRead)
+			bits |= GL_UNIFORM_BARRIER_BIT;
+		if (to & MemoryBarrierBit::InputAttachmentRead)
+			bits |= GL_SHADER_IMAGE_ACCESS_BARRIER_BIT;
+		m_commands.push_back([bits]() {
+			glMemoryBarrierByRegion(bits);
+			});
+	}
+	else
+	{
+		if (to & MemoryBarrierBit::VertexAttribRead)
+			bits |= GL_VERTEX_ATTRIB_ARRAY_BARRIER_BIT;
+		if (to & MemoryBarrierBit::UniformBufferRead)
+			bits |= GL_UNIFORM_BARRIER_BIT;
+		if (to & MemoryBarrierBit::TransferRead)
+			bits |= GL_PIXEL_BUFFER_BARRIER_BIT | GL_BUFFER_UPDATE_BARRIER_BIT | GL_TEXTURE_UPDATE_BARRIER_BIT;
+		if (to & MemoryBarrierBit::ShaderReadBit)
+			bits |= GL_SHADER_STORAGE_BARRIER_BIT | GL_SHADER_IMAGE_ACCESS_BARRIER_BIT | GL_QUERY_BUFFER_BARRIER_BIT;
+		if (to & MemoryBarrierBit::RenderTargetRead)
+			bits |= GL_FRAMEBUFFER_BARRIER_BIT;
+		if (to & MemoryBarrierBit::InputAttachmentRead)
+			bits |= GL_TEXTURE_UPDATE_BARRIER_BIT | GL_SHADER_IMAGE_ACCESS_BARRIER_BIT;
+		if (to & MemoryBarrierBit::IndirectCommandRead)
+			bits |= GL_COMMAND_BARRIER_BIT;
+		if (to & MemoryBarrierBit::IndexBufferRead)
+			bits |= GL_ELEMENT_ARRAY_BARRIER_BIT;
+		if (to & MemoryBarrierBit::HostRead)
+			bits |= GL_PIXEL_BUFFER_BARRIER_BIT | GL_BUFFER_UPDATE_BARRIER_BIT | GL_TEXTURE_UPDATE_BARRIER_BIT | GL_CLIENT_MAPPED_BUFFER_BARRIER_BIT;
+		m_commands.push_back([bits]() {
+			glMemoryBarrier(bits);
+			});
+	}
+}
+
 void GLCmdBuffer::ClearColor(GraphicsImageObject *image, glm::vec4 color, int level, int layer)
 {
 	GLImage *i = dynamic_cast<GLImage *>(image);
@@ -510,11 +553,11 @@ void GLCmdBuffer::UpdateBufferData(GraphicsMemoryBuffer *buffer, int offset, int
 		});
 }
 
-void GLCmdBuffer::CopyBufferToImage(GraphicsMemoryBuffer *srcBuffer, GraphicsImageObject *destImage, std::vector<GraphicsBufferImageCopyRegion> regions)
+void GLCmdBuffer::CopyBufferToImageWithConversion(GraphicsMemoryBuffer *srcBuffer, VectorDataFormat srcFormat, GraphicsImageObject *destImage, std::vector<GraphicsBufferImageCopyRegion> regions)
 {
 	GLBuffer *src = dynamic_cast<GLBuffer *>(srcBuffer);
 	GLImage *dest = dynamic_cast<GLImage *>(destImage);
-	VectorFormatDesc desc = GetFormatDesc(dest->GetVectorFormat());
+	VectorFormatDesc desc = GetFormatDesc(srcFormat);
 
 	GLenum format = desc.Depth ? (desc.Stencil ? GL_DEPTH_STENCIL : GL_DEPTH_COMPONENT) : desc.Stencil ? GL_STENCIL_INDEX :
 		desc.RBits > 0 ? (desc.GBits > 0 ? (desc.BBits > 0 ? (desc.ABits > 0 ? GL_RGBA : GL_RGB) : GL_RG) : GL_R) : GL_R;
@@ -607,7 +650,7 @@ void GLCmdBuffer::CopyImageToImage(GraphicsImageObject *srcImage, GraphicsImageO
 
 }
 
-void GLCmdBuffer::CopyBufferToBuffer(GraphicsMemoryBuffer *src, GraphicsMemoryBuffer *dest, int srcOffset, int destOffset, int size)
+void GLCmdBuffer::CopyBufferToBuffer(GraphicsMemoryBuffer *src, GraphicsMemoryBuffer *dest, unsigned long long srcOffset, unsigned long long destOffset, int size)
 {
 	GLBuffer *s = dynamic_cast<GLBuffer *>(src);
 	GLBuffer *d = dynamic_cast<GLBuffer *>(dest);

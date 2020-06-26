@@ -170,23 +170,21 @@ void main()
 	ps.VertexInputState.BufferData = { vbid, vbid1 };
 	
 	m_pipeline = context->CreateGraphicsPipeline(ps);
-
-	m_stagingBuffer = context->CreateBuffer(16e6, BufferUsageBit::TransferSource, GraphicsMemoryTypeBit::HostVisible |
-		GraphicsMemoryTypeBit::Coherent);
-
-	m_textureStagingBuffer = context->CreateBuffer(16e4, BufferUsageBit::TransferSource | BufferUsageBit::TransferDest, GraphicsMemoryTypeBit::DeviceResident);
+	
+	m_stagingBuffer = context->CreateBuffer(16e6, BufferUsageBit::TransferSource, GraphicsMemoryTypeBit::HostVisible | GraphicsMemoryTypeBit::Coherent);
 
 	m_vertexData = context->CreateBuffer(3 * sizeof(glm::vec3) + 3 * sizeof(glm::vec2), BufferUsageBit::TransferDest | BufferUsageBit::VertexBuffer,
 		GraphicsMemoryTypeBit::DeviceResident);
 	
-	m_stagingBuffer->MapBuffer(true);
+	m_stagingBuffer->MapBuffer(0, 16e3, true, true);
+
 	std::memcpy(m_stagingBuffer->GetMappedPointer(), vertices, 3 * sizeof(glm::vec3));
 	std::memcpy(reinterpret_cast<char *>(m_stagingBuffer->GetMappedPointer()) + 3 * sizeof(glm::vec3), uvs, 3 * sizeof(glm::vec2));
 
 	GraphicsBufferImageCopyRegion texRegion;
 	texRegion.BufferImageHeight = 0;
 	texRegion.BufferRowLength = 0;
-	texRegion.BufferOffset = 0;
+	texRegion.BufferOffset = 3 * sizeof(glm::vec3) + 3 * sizeof(glm::vec2);
 	texRegion.Level = 0;
 	texRegion.Offset = glm::ivec3(0, 0, 0);
 	texRegion.Size = glm::ivec3(testwidth, testheight, 1);
@@ -197,18 +195,15 @@ void main()
 		HEADER_PIXEL(header_data, location);
 	}
 
-	m_stagingBuffer->FlushMapped(0, 3 * sizeof(glm::vec3) + 4 * testwidth * testheight);
-
-	m_cmdRenderBuffer = context->CreateGraphicsCommandBuffers(1, false, true, false)[0];
+	m_cmdRenderBuffer = context->CreateGraphicsCommandBuffers(1, false, false, false)[0];
 	m_cmdRenderBuffer->BeginRecording();
 	m_cmdRenderBuffer->CopyBufferToBuffer(m_stagingBuffer, m_vertexData, 0, 0, 3 * sizeof(glm::vec3) + 3 * sizeof(glm::vec2));
-	m_cmdRenderBuffer->CopyBufferToBuffer(m_stagingBuffer, m_textureStagingBuffer, 3 * sizeof(glm::vec3) + 3 * sizeof(glm::vec2), 0, 4 * testwidth * testheight);
-	m_cmdRenderBuffer->CopyBufferToImage(m_textureStagingBuffer, m_texture, { texRegion });
+	m_cmdRenderBuffer->CopyBufferToImageWithConversion(m_stagingBuffer, VectorDataFormat::R8G8B8A8Uint, m_texture, { texRegion });
 	m_cmdRenderBuffer->StopRecording();
 
 	context->SubmitCommands(m_cmdRenderBuffer, GraphicsQueueType::Transfer);
 
-	m_cmdTopBuffer = context->CreateGraphicsCommandBuffers(1, false, true, false)[0];
+	m_cmdTopBuffer = context->CreateGraphicsCommandBuffers(1, false, false, false)[0];
 	m_cmdTopBuffer->BeginRecording();
 	m_cmdTopBuffer->BindRenderPass(m_renderTarget, m_renderPass, { glm::vec4(0, 0, 0, 1), glm::vec4(1, 1, 1, 1) }, 0);
 	m_cmdTopBuffer->BindRenderPipeline(m_pipeline);
@@ -217,8 +212,6 @@ void main()
 	m_cmdTopBuffer->Draw(3, 1, 0, 0);
 	m_cmdTopBuffer->EndRenderPass();
 	m_cmdTopBuffer->StopRecording();
-
-	m_stagingBuffer->UnmapBuffer();
 }
 
 void TestSystem::Destroy()
@@ -226,6 +219,8 @@ void TestSystem::Destroy()
 	GraphicsContext *context = XEngine::GetInstance().
 		GetInterface<DisplayInterface>(HardwareInterfaceType::Display)->GetGraphicsContext();
 	context->SyncWithCommandSubmissionThread();
+
+	m_stagingBuffer->UnmapBuffer();
 
 	delete m_textureView;
 	delete m_texture;

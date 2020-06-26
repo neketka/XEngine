@@ -128,6 +128,23 @@ enum class SamplerWrapMode
 	Repeat, MirroredRepeat, ClampToEdge, ClampToBorder, MirrorClampToEdge
 };
 
+enum class MemoryBarrierBit
+{
+	IndirectCommandRead = 1, IndexBufferRead = 2, VertexAttribRead = 4, UniformBufferRead = 8,
+	InputAttachmentRead = 16, ShaderReadBit = 32, ShaderWriteBit = 64, RenderTargetRead = 128,
+	RenderTargetWrite = 256, TransferRead = 512, TransferWrite = 1024, HostRead = 2048, HostWrite = 4096
+};
+
+inline MemoryBarrierBit operator|(MemoryBarrierBit a, MemoryBarrierBit b)
+{
+	return static_cast<MemoryBarrierBit>(static_cast<int>(a) | static_cast<int>(b));
+}
+
+inline bool operator&(MemoryBarrierBit a, MemoryBarrierBit b)
+{
+	return static_cast<bool>(static_cast<int>(a) & static_cast<int>(b));
+}
+
 enum class GraphicsQueryType
 {
 	AnySamplesPassed, PrimitivesGenerated, Timestamp
@@ -135,7 +152,7 @@ enum class GraphicsQueryType
 
 enum class GraphicsMemoryTypeBit
 {
-	DynamicAccess, HostVisible, Coherent, DeviceResident
+	DynamicAccess=1, HostVisible=2, Coherent=4, DeviceResident=8
 };
 
 inline GraphicsMemoryTypeBit operator|(GraphicsMemoryTypeBit a, GraphicsMemoryTypeBit b)

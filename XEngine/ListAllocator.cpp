@@ -1,16 +1,15 @@
 #include "pch.h"
 #include "ListAllocator.h"
 
-ListAllocator::ListAllocator(int size, int maxAllocs)
+ListAllocator::ListAllocator(unsigned long long size, int maxAllocs)
 {
 	m_maxSize = size;
 	m_pointer = 0;
 	m_maxHeaders = maxAllocs;
 
 	m_headerLinks.resize(maxAllocs);
-	m_freeList.resize(maxAllocs);
 	for (int i = 0; i < maxAllocs; ++i)
-		m_freeList[i] = i;
+		m_freeList.push(i);
 }
 
 ListAllocator::~ListAllocator()
@@ -19,10 +18,11 @@ ListAllocator::~ListAllocator()
 
 ListMemoryPointer *ListAllocator::AllocateMemory(int size, int alignment)
 {
-	int alignmentPad = m_pointer % alignment;
+	m_defragLock.lock_shared();
 
-	int thisPtr = m_pointer + alignmentPad;
-	int newPtr = thisPtr + size;
+	int alignmentPad = m_pointer % alignment;
+	unsigned long long thisPtr = m_pointer + alignmentPad;
+	unsigned long long newPtr = thisPtr + size;
 
 	if (newPtr >= m_maxSize)
 	{
@@ -34,8 +34,9 @@ ListMemoryPointer *ListAllocator::AllocateMemory(int size, int alignment)
 			return nullptr;
 	}
 
-	int index = m_freeList.back();
-	m_freeList.pop_back();
+	int index = 0;
+	if (!m_freeList.try_pop(index))
+		return nullptr;
 
 	m_freeSpace -= alignmentPad + size;
 
@@ -49,6 +50,7 @@ ListMemoryPointer *ListAllocator::AllocateMemory(int size, int alignment)
 		m_first->Size = size;
 		m_first->Index = index;
 		m_first->Padding = alignmentPad;
+		m_first->Pinned = false;
 	}
 	else
 	{
@@ -60,21 +62,28 @@ ListMemoryPointer *ListAllocator::AllocateMemory(int size, int alignment)
 		h->Size = size;
 		h->Index = index;
 		h->Padding = alignmentPad;
+		h->Pinned = false;
 		m_last->Next = h;
 	}
 
 	m_pointer = newPtr;
+
+	m_defragLock.unlock_shared();
 
 	return dynamic_cast<ListMemoryPointer *>(m_last);
 }
 
 void ListAllocator::DeallocateMemory(ListMemoryPointer *ptr)
 {
+	UnpinMemoryUnmanaged(ptr);
+
+	m_defragLock.lock_shared();
 	ListEntryHeader *h = static_cast<ListEntryHeader *>(ptr);
 	h->Prev->Next = h->Next;
 	h->Next->Prev = h->Prev;
-	m_freeList.push_back(h->Index);
+	m_freeList.push(h->Index);
 	m_freeSpace += h->Size + h->Padding;
+	m_defragLock.unlock_shared();
 }
 
 int ListAllocator::GetAllocationSize(ListMemoryPointer *ptr)
@@ -85,12 +94,32 @@ int ListAllocator::GetAllocationSize(ListMemoryPointer *ptr)
 
 void ListAllocator::ShrinkToFit(int extraMemory)
 {
-	m_maxSize = m_pointer + extraMemory + 1;
+	m_maxSize = m_pointer + static_cast<unsigned long long>(extraMemory) + 1;
 }
 
-void ListAllocator::SetSize(int maxSize)
+void ListAllocator::SetSize(unsigned long long maxSize)
 {
 	m_maxSize = maxSize;
+}
+
+std::shared_ptr<PinnedListMemory> ListAllocator::PinMemory(ListMemoryPointer *ptr)
+{
+	PinMemoryUnmanaged(ptr);
+	return std::make_shared<PinnedListMemory>(this, ptr);
+}
+
+void ListAllocator::PinMemoryUnmanaged(ListMemoryPointer *ptr)
+{
+	m_defragLock.lock_shared();
+	ListEntryHeader *h = static_cast<ListEntryHeader *>(ptr);
+	h->Pinned = true;
+	m_defragLock.unlock_shared();
+}
+
+void ListAllocator::UnpinMemoryUnmanaged(ListMemoryPointer *ptr)
+{
+	ListEntryHeader *h = static_cast<ListEntryHeader *>(ptr);
+	h->Pinned = false;
 }
 
 int ListAllocator::GetMaxSize()
@@ -108,19 +137,37 @@ void ListAllocator::SetMoveCallback(std::function<void(MoveData&)> move)
 	m_move = move;
 }
 
+void ListAllocator::SetDefragBeginCallback(std::function<void()> begin)
+{
+	m_defragBegin = begin;
+}
+
+void ListAllocator::SetDefragEndCallback(std::function<void()> end)
+{
+	m_defragEnd = end;
+}
+
 void ListAllocator::Defragment()
 {
-	int pointer = 0;
+	m_defragLock.lock();
+	m_defragBegin();
+
+	unsigned long long pointer = 0;
 
 	MoveData mv;
 	for (ListEntryHeader *h = m_first; h->Next != nullptr; h = h->Next)
 	{
+		if (h->Pinned)
+		{
+			pointer = h->Pointer + h->Size;
+			continue;
+		}
 		mv.SrcIndex = h->Pointer;
 		mv.Size = h->Size;
 
 		int alignmentPad = pointer % h->Alignment;
-		int thisPtr = pointer + alignmentPad;
-		int newPtr = thisPtr + h->Size;
+		unsigned long long thisPtr = pointer + alignmentPad;
+		unsigned long long newPtr = thisPtr + h->Size;
 
 		h->Pointer = thisPtr;
 		h->Padding = alignmentPad;
@@ -132,4 +179,29 @@ void ListAllocator::Defragment()
 			m_move(mv);
 	}
 	m_pointer = pointer;
+
+	m_defragEnd();
+	m_defragLock.unlock();
+}
+
+PinnedListMemory::PinnedListMemory(ListAllocator *allocator, ListMemoryPointer *ptr) : m_allocator(allocator), m_ptr(ptr), m_unpinned(false)
+{
+}
+
+PinnedListMemory::~PinnedListMemory()
+{
+	if (!m_unpinned)
+	{
+		m_unpinned = true;
+		m_allocator->UnpinMemoryUnmanaged(m_ptr);
+	}
+}
+
+void PinnedListMemory::Unpin()
+{
+	if (!m_unpinned)
+	{
+		m_unpinned = true;
+		m_allocator->UnpinMemoryUnmanaged(m_ptr);
+	}
 }

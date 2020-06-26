@@ -222,6 +222,8 @@ void SystemGraphSorter::PropagateUntilFindEnabledOrNonEmptyOrVisitedOrUnfulfille
 
 			output->QueuedJobs = jobs->size() + disposedJobs->size();
 
+			output->System->BeforeEntityUpdate(m_deltaTime);
+
 			for (ComponentDataIterator iter : *jobs) // Dump jobs into queue
 			{
 				iter.UserPointer = output;

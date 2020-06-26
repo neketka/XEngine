@@ -3,6 +3,8 @@
 #include "AssetManager.h"
 #include "GraphicsDefs.h"
 
+#include "GPURingQueue.h"
+
 #include <atomic>
 #include <shared_mutex>
 #include <unordered_map>
@@ -15,6 +17,20 @@ public:
 	glm::vec4 NormalColorG;
 	glm::vec4 TangentColorB;
 	glm::vec4 Texcoord0ColorA;
+};
+
+class SkinnedVertex
+{
+public:
+	glm::vec4 PositionColorR;
+	glm::vec4 NormalColorG;
+	glm::vec4 TangentColorB;
+	glm::vec4 Texcoord0ColorA;
+};
+
+class ClusterData
+{
+public:
 };
 
 using VertexMemoryPointer = ListMemoryPointer *;
@@ -30,14 +46,36 @@ public:
 	virtual void AddRef() override;
 	virtual void RemoveRef() override;
 
-	int GetReducedVertexCount();
-	int GetFullVertexCount();
-	int GetReducedIndexCount();
-	int GetFullIndexCount();
+	void SetFormatAsRenderVertex();
+	void SetFormatAsSkinnedVertex();
 
-	void SetMeshData(RenderVertex *vertices, int vCount, int *indices, int iCount, bool reduced);
-	void SetVertices(RenderVertex *vertices, int offset, int count, bool reduced);
-	void SetIndices(int *indices, int offset, int count, bool reduced);
+	void SetVertexFormat(std::vector<VectorDataFormat>& format);
+	std::vector<VectorDataFormat>& GetVertexFormat();
+	UniqueId GetVertexFormatId();
+
+	template<class T>
+	void SetMeshData(T *vertices, int vCount, int *indices, int iCount, bool reduced)
+	{
+		SetMeshDataInternal(vertices, sizeof(T), vCount, indices, iCount, reduced);
+	}
+	void SetClusterData(ClusterData *data, int count);
+
+	template<class T>
+	PinnedLocalMemory<T> GetVertices(bool reduced)
+	{
+
+	}
+	PinnedLocalMemory<int> GetIndices(bool reduced);
+	PinnedLocalMemory<ClusterData> GetClusterData();
+
+	PinnedGPUMemory GetGPUVertices(bool reduced);
+	PinnedGPUMemory GetGPUIndices(bool reduced);
+
+	void Invalidate(bool reduced);
+
+	void UpdateGPUVertices();
+	void UpdateGPUIndices();
+
 	void SetReducedMeshEnabled(bool state);
 	void SetPersistFullMesh(bool state);
 
@@ -47,12 +85,16 @@ public:
 private:
 	friend class MeshAssetLoader;
 
+	void SetMeshDataInternal(void *vertices, int tSize, int vCount, int *indices, int iCount, bool reduced);
+
 	MeshAssetLoader *m_loader;
 
 	AssetMemoryPointer m_clusterData;
 	int m_clusterCount;
 
 	std::vector<VectorDataFormat> m_vertexFormat;
+	
+	std::shared_ptr<GraphicsSyncObject *> m_uploadSync;
 
 	AssetMemoryPointer m_fullLodElementsCPU;
 	AssetMemoryPointer m_reducedLodElementsCPU;
@@ -76,15 +118,12 @@ private:
 
 	UniqueId m_id;
 	std::atomic_int m_refCounter;
-
-	IAssetLoader *m_loader;
 };
 
 class MeshVertexAllocationPoint
 {
 public:
-	GraphicsMemoryBuffer *VertexBuffer;
-	ListAllocator BufferAllocator;
+	GPUMemoryAllocator MemoryAllocator;
 	std::vector<VectorDataFormat> VertexVectorElements;
 	int BytesPerVertex;
 };
@@ -92,7 +131,7 @@ public:
 class MeshAssetLoader : public IAssetLoader
 {
 public:
-	MeshAssetLoader(int minVertexCount, int minIndexCount);
+	MeshAssetLoader(int minVertexCount, int minIndexCount, int stagingBufferSize);
 	virtual ~MeshAssetLoader() override;
 
 	UniqueId GetVertexType(std::vector<VectorDataFormat> descs);
@@ -118,8 +157,9 @@ public:
 	virtual void Export(IAsset *asset, AssetDescriptorPreHeader& preHeader, LoadMemoryPointer& header, LoadMemoryPointer& content) override;
 private:
 	int m_minVertexCount, m_minIndexCount;
+	GPUUploadRingQueue m_uploadQueue;
 
-	std::shared_mutex m_writeMutex;
+	std::shared_mutex m_vertexTypeMutex;
 	std::unordered_map<std::vector<VectorDataFormat>, UniqueId> m_elementsToType;
 	std::unordered_map<UniqueId, MeshVertexAllocationPoint> m_vertexTypes;
 };

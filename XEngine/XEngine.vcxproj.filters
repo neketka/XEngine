@@ -162,6 +162,18 @@
     <ClInclude Include="Bounding.h">
       <Filter>Geometry</Filter>
     </ClInclude>
+    <ClInclude Include="RingAllocator.h">
+      <Filter>Allocators</Filter>
+    </ClInclude>
+    <ClInclude Include="LocalMemoryAllocator.h">
+      <Filter>Allocators</Filter>
+    </ClInclude>
+    <ClInclude Include="GPUMemoryAllocator.h">
+      <Filter>Allocators</Filter>
+    </ClInclude>
+    <ClInclude Include="GPURingQueue.h">
+      <Filter>Allocators</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="ChunkAllocator.cpp">
@@ -238,6 +250,18 @@
     </ClCompile>
     <ClCompile Include="Bounding.cpp">
       <Filter>Geometry</Filter>
+    </ClCompile>
+    <ClCompile Include="RingAllocator.cpp">
+      <Filter>Allocators</Filter>
+    </ClCompile>
+    <ClCompile Include="LocalMemoryAllocator.cpp">
+      <Filter>Allocators</Filter>
+    </ClCompile>
+    <ClCompile Include="GPUMemoryAllocator.cpp">
+      <Filter>Allocators</Filter>
+    </ClCompile>
+    <ClCompile Include="GPURingQueue.cpp">
+      <Filter>Allocators</Filter>
     </ClCompile>
   </ItemGroup>
   <ItemGroup>

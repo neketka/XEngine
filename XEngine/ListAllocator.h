@@ -2,7 +2,10 @@
 #include <functional>
 #include <vector>
 #include <unordered_map>
-#include "UUID.h"
+#include <shared_mutex>
+#include <memory>
+
+#include "exports.h"
 
 using ListPointer = unsigned __int64;
 
@@ -19,8 +22,9 @@ public:
 	ListEntryHeader *Next;
 	int Index;
 	int Padding;
-	int Size;
-	int Alignment;
+	unsigned long long Size;
+	unsigned long long Alignment;
+	bool Pinned;
 };
 
 class MoveData
@@ -31,38 +35,62 @@ public:
 	int Size;
 };
 
+class ListAllocator;
+class PinnedListMemory
+{
+public:
+	XENGINEAPI PinnedListMemory(ListAllocator *allocator, ListMemoryPointer *ptr);
+	XENGINEAPI ~PinnedListMemory();
+	ListMemoryPointer *GetPointer() { return m_ptr; }
+	XENGINEAPI void Unpin();
+private:
+	ListAllocator *m_allocator;
+	ListMemoryPointer *m_ptr;
+	bool m_unpinned;
+};
+
 class ListAllocator
 {
 public:
-	ListAllocator(int size, int maxAllocs);
-	~ListAllocator();
+	XENGINEAPI ListAllocator(unsigned long long size, int maxAllocs);
+	XENGINEAPI ~ListAllocator();
 
-	ListMemoryPointer *AllocateMemory(int size, int alignment);
-	void DeallocateMemory(ListMemoryPointer *ptr);
+	XENGINEAPI ListMemoryPointer *AllocateMemory(int size, int alignment);
+	XENGINEAPI void DeallocateMemory(ListMemoryPointer *ptr);
 
-	int GetAllocationSize(ListMemoryPointer *ptr);
+	XENGINEAPI int GetAllocationSize(ListMemoryPointer *ptr);
 
-	void ShrinkToFit(int extraMemory);
-	void SetSize(int maxSize);
+	XENGINEAPI void ShrinkToFit(int extraMemory);
+	XENGINEAPI void SetSize(unsigned long long maxSize);
 
-	int GetMaxSize();
-	int GetFreeSpace();
+	XENGINEAPI std::shared_ptr<PinnedListMemory> PinMemory(ListMemoryPointer *ptr);
+	XENGINEAPI void PinMemoryUnmanaged(ListMemoryPointer *ptr);
+	XENGINEAPI void UnpinMemoryUnmanaged(ListMemoryPointer *ptr);
 
-	void SetMoveCallback(std::function<void(MoveData&)> move);
+	XENGINEAPI int GetMaxSize();
+	XENGINEAPI int GetFreeSpace();
+
+	XENGINEAPI void SetMoveCallback(std::function<void(MoveData&)> move);
+	XENGINEAPI void SetDefragBeginCallback(std::function<void()> begin);
+	XENGINEAPI void SetDefragEndCallback(std::function<void()> end);
 private:
 	void Defragment();
+
+	std::shared_mutex m_defragLock;
 	
 	std::vector<ListEntryHeader> m_headerLinks;
-	std::vector<int> m_freeList;
+	concurrency::concurrent_queue<int> m_freeList;
 
 	ListEntryHeader *m_first = nullptr;
 	ListEntryHeader *m_last = nullptr;
 
-	int m_pointer;
+	std::atomic<unsigned long long> m_pointer;
+	std::atomic<unsigned long long> m_freeSpace;
 
-	int m_maxSize;
+	unsigned long long m_maxSize;
 	int m_maxHeaders;
-	int m_freeSpace;
 
 	std::function<void(MoveData&)> m_move;
+	std::function<void()> m_defragBegin = []() {};
+	std::function<void()> m_defragEnd = []() {};
 };

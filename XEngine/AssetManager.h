@@ -10,6 +10,7 @@
 #include "ListAllocator.h"
 #include "GraphicsDefs.h"
 #include "AssetBundleReader.h"
+#include "LocalMemoryAllocator.h"
 
 class IAsset
 {
@@ -25,10 +26,20 @@ class RefCountedAsset
 {
 public:
 	RefCountedAsset(IAsset *held) : m_held(held) { }
-	RefCountedAsset(const RefCountedAsset& asset) : m_held(asset.m_held) { asset.m_held->AddRef(); }
-	~RefCountedAsset() { m_held->RemoveRef(); }
-	RefCountedAsset& operator=(const RefCountedAsset& asset) { m_held = asset.m_held; m_held->AddRef(); return *this; }
+	RefCountedAsset(const RefCountedAsset& asset) : m_held(asset.m_held) { if (m_held) asset.m_held->AddRef(); }
+	~RefCountedAsset() { if (m_held) m_held->RemoveRef(); }
+	RefCountedAsset& operator=(const RefCountedAsset& asset) 
+	{ 
+		if (m_held)
+		{
+			m_held->RemoveRef();
+			m_held = asset.m_held;
+			m_held->AddRef();
+		}
+		return *this; 
+	}
 	T& Get() { return *dynamic_cast<T *>(m_held); }
+	void RemoveThisReference() { m_held->RemoveRef(); m_held = nullptr; }
 private:
 	IAsset *m_held;
 };
@@ -105,15 +116,8 @@ public:
 	XENGINEAPI void ExportAssetBundleToDisc(std::string filePath, std::vector<UniqueId>& assets, bool nonBlocking);
 	XENGINEAPI void DeleteBundleAssetsFromMemory(std::string filePath);
 
-	template<class T>
-	T *GetAssetMemory(AssetMemoryPointer ptr) { return static_cast<T *>(GetAssetMemoryInternal(ptr)); }
-	XENGINEAPI AssetMemoryPointer RequestAssetSpace(int bytes);
-	XENGINEAPI void FreeAssetSpace(AssetMemoryPointer ptr);
-
-	template<class T>
-	T *GetLoadMemory(LoadMemoryPointer ptr) { return static_cast<T *>(GetLoadMemoryInternal(ptr)); }
-	XENGINEAPI LoadMemoryPointer RequestLoadSpace(int bytes);
-	XENGINEAPI void FreeLoadSpace(LoadMemoryPointer ptr);
+	XENGINEAPI LocalMemoryAllocator& GetAssetMemory();
+	XENGINEAPI LocalMemoryAllocator& GetLoadMemory();
 
 	XENGINEAPI void CleanUnusedMemory();
 
@@ -141,19 +145,10 @@ private:
 	std::thread *m_assetLoadingThread;
 	void PerformThreadTasks();
 
-	XENGINEAPI void *GetAssetMemoryInternal(AssetMemoryPointer ptr);
-	XENGINEAPI void *GetLoadMemoryInternal(LoadMemoryPointer ptr);
-
 	void ExportAssetBundleToDisc(std::string filePath, std::vector<UniqueId>& assets);
 
-	void MoveAssetMemory(MoveData& mv);
-	void MoveLoadMemory(MoveData& mv);
-
-	void *m_loadMemory;
-	ListAllocator m_loadMemoryAlloc;
-
-	void *m_assetMemory;
-	ListAllocator m_assetMemoryAlloc;
+	LocalMemoryAllocator m_loadMemory;
+	LocalMemoryAllocator m_assetMemory;
 
 	std::unordered_map<std::string, IAssetLoader *> m_loaders;
 	std::unordered_map<std::string, IFormatImporter *> m_importers;

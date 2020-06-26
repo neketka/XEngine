@@ -52,3 +52,8 @@ bool GLSync::GetCurrentStatus()
 {
 	return m_signaled;
 }
+
+void GLSync::Reset()
+{
+	ResetSignaled();
+}
