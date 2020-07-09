@@ -22,6 +22,9 @@ public:
 	GLContext(SDL_Window *window);
 	~GLContext();
 	virtual std::vector<GraphicsCommandBuffer *> CreateGraphicsCommandBuffers(int count, bool graphics, bool compute, bool transfer) override;
+	virtual GraphicsCommandBuffer *GetGraphicsBufferFromPool() override;
+	virtual GraphicsCommandBuffer *GetTransferBufferFromPool() override;
+	virtual GraphicsCommandBuffer *GetComputeBufferFromPool() override;
 	virtual GraphicsRenderPipeline *CreateGraphicsPipeline(GraphicsRenderPipelineState& state) override;
 	virtual GraphicsComputePipeline *CreateComputePipeline(GraphicsComputePipelineState& state) override;
 	virtual GraphicsMemoryBuffer *CreateBuffer(unsigned long long byteSize, BufferUsageBit usage, GraphicsMemoryTypeBit mem) override;
@@ -54,6 +57,7 @@ public:
 	void MapRequest(GLBuffer *buffer);
 private:
 	void RunContextThread();
+	GraphicsCommandBuffer *GetPoolCmdBuf();
 	std::atomic<glm::ivec2> m_atomicScreenSize;
 
 	std::atomic_bool m_initScreen;
@@ -67,6 +71,8 @@ private:
 	GLSpecific *m_specific;
 	SDL_Window *m_window; 
 	SDL_GLContext m_context;
+
+	concurrency::concurrent_queue<GLCmdBuffer *> m_cmdPool;
 
 	concurrency::concurrent_queue<GLInitable *> m_queuedInitializers;
 	concurrency::concurrent_queue<GLCmdBuffer *> m_queuedBuffers;

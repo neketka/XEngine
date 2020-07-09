@@ -12,7 +12,7 @@ int RingAllocator::AllocateMemory(int size, int alignment, bool overwrite)
 	int ptr = m_validRangeEnd + padding;
 	int newRangeEnd = ptr + size;
 
-	if ((m_validRangeEnd <= m_validRangeBegin) && (newRangeEnd >= m_validRangeBegin) && !overwrite)
+	if ((m_validRangeEnd < m_validRangeBegin) && (newRangeEnd >= m_validRangeBegin) && !overwrite)
 		return -1;
 	
 	if (newRangeEnd >= m_size)

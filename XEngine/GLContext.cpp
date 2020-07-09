@@ -37,6 +37,10 @@ GLContext::~GLContext()
 	delete m_renderTarget;
 
 	m_glSubmissionThread->join();
+	/*
+	GLCmdBuffer *buf;
+	while (m_cmdPool.try_pop(buf))
+		delete buf;*/
 
 	delete m_specific;
 	delete m_glSubmissionThread;
@@ -51,6 +55,21 @@ std::vector<GraphicsCommandBuffer *> GLContext::CreateGraphicsCommandBuffers(int
 		buffers.push_back(new GLCmdBuffer(this));
 	}
 	return buffers;
+}
+
+GraphicsCommandBuffer *GLContext::GetGraphicsBufferFromPool()
+{
+	return GetPoolCmdBuf();
+}
+
+GraphicsCommandBuffer *GLContext::GetTransferBufferFromPool()
+{
+	return GetPoolCmdBuf();
+}
+
+GraphicsCommandBuffer *GLContext::GetComputeBufferFromPool()
+{
+	return GetPoolCmdBuf();
 }
 
 GraphicsRenderPipeline *GLContext::CreateGraphicsPipeline(GraphicsRenderPipelineState& state)
@@ -313,7 +332,15 @@ void GLContext::RunContextThread()
 			}
 			else
 			{
-				buffer->Execute();
+				if (m_running)
+				{
+					buffer->Execute();
+					if (buffer->IsPooled())
+					{
+						buffer->BeginRecording();
+						m_cmdPool.push(buffer);
+					}
+				}
 			}
 		}
 		while (m_queuedSyncs.try_pop(sync))
@@ -344,6 +371,14 @@ void GLContext::RunContextThread()
 	SDL_GL_DeleteContext(m_context);
 }
 
+GraphicsCommandBuffer *GLContext::GetPoolCmdBuf()
+{
+	GLCmdBuffer *buf;
+	if (!m_cmdPool.try_pop(buf))
+		buf = new GLCmdBuffer(this, true);
+	return buf;
+}
+
 void GLContext::SyncWithCommandSubmissionThread()
 {
 	while (!m_syncWithRenderThread);
@@ -361,5 +396,5 @@ GraphicsSyncObject *GLContext::CreateSync(bool gpuQueueSync)
 
 std::string GLSpecific::GetApiString()
 {
-	return "OpenGL";
+	return "OpenGL 4.6 with ARB_shader_draw_parameters";
 }

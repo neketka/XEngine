@@ -13,6 +13,7 @@ public:
 	void BindState();
 	int GetBindingStride(int binding) { return m_bindingStrides[binding]; }
 	GLuint GetStage(ShaderStageBit bits) { return m_stageToProgram[bits]; }
+	GLuint GetVao() { return m_vao; }
 	GraphicsPrimitiveType GetTopology() { return m_state.VertexInputState.Topology; }
 	GraphicsRenderPipelineState& GetState() { return m_state; }
 private:

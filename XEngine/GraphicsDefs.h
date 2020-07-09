@@ -57,7 +57,7 @@ class GraphicsShaderConstantData
 public:
 	ShaderStageBit Stages;
 	int Offset;
-	int Size;
+	int ElementCount;
 	bool Float;
 	bool Matrix;
 	int VectorLength;
@@ -103,7 +103,6 @@ public:
 	virtual void FlushMapped(unsigned long long offset, int size) = 0;
 	virtual void InvalidateMapped(unsigned long long offset, int size) = 0;
 };
-
 
 class GraphicsShaderState
 {
@@ -343,6 +342,9 @@ class GraphicsContext
 public:
 	virtual ~GraphicsContext() {}
 	virtual std::vector<GraphicsCommandBuffer *> CreateGraphicsCommandBuffers(int count, bool graphics, bool compute, bool transfer) = 0;
+	virtual GraphicsCommandBuffer *GetTransferBufferFromPool() = 0;
+	virtual GraphicsCommandBuffer *GetGraphicsBufferFromPool() = 0;
+	virtual GraphicsCommandBuffer *GetComputeBufferFromPool() = 0;
 	virtual GraphicsRenderPipeline *CreateGraphicsPipeline(GraphicsRenderPipelineState& state) = 0;
 	virtual GraphicsComputePipeline *CreateComputePipeline(GraphicsComputePipelineState& state) = 0;
 	virtual GraphicsMemoryBuffer *CreateBuffer(unsigned long long byteSize, BufferUsageBit usage, GraphicsMemoryTypeBit mem) = 0;

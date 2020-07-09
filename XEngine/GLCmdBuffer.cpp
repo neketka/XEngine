@@ -16,7 +16,7 @@ std::map<ComparisonMode, GLenum> compModeB =
 	{ ComparisonMode::GreaterOrEqual, GL_GEQUAL }, { ComparisonMode::Always, GL_ALWAYS }
 };
 
-GLCmdBuffer::GLCmdBuffer(GraphicsContext *context) : m_context(context)
+GLCmdBuffer::GLCmdBuffer(GraphicsContext *context, bool pooled) : m_context(context), m_pooled(pooled)
 {
 }
 
@@ -131,22 +131,24 @@ void GLCmdBuffer::BindVertexBuffers(int firstBinding, std::vector<GraphicsMemory
 
 	m_commands.push_back([firstBinding, ids, offs, strides, p]()
 		{
-			glBindVertexBuffers(firstBinding, offs.size(), ids.data(), offs.data(), strides.data());
+			glVertexArrayVertexBuffers(p->GetVao(), firstBinding, offs.size(), ids.data(), offs.data(), strides.data());
 		});
 }
 
 void GLCmdBuffer::BindIndexBuffer(GraphicsMemoryBuffer *buffer, bool dataType16bit)
 {
 	GLuint id = dynamic_cast<GLBuffer *>(buffer)->GetBufferId();
-	m_commands.push_back([id]()
+	GLPipeline *p = m_lastRenderPipe;
+	m_commands.push_back([id, p]()
 		{
-			glBindBuffer(GL_ELEMENT_ARRAY_BUFFER_BINDING, id);
+			glVertexArrayElementBuffer(p->GetVao(), id);
 		});
 	m_ibo16Bit = dataType16bit;
 }
 
 void GLCmdBuffer::PushShaderConstants(GraphicsShaderDataSet *set, int constantIndex, int constantOffset, int constantCount, void *data)
 {
+	m_lastRenderPipe->WaitInit();
 	GLShaderDataSet *sds = dynamic_cast<GLShaderDataSet *>(set);
 	GraphicsShaderConstantData& sdata = sds->GetConstantData()[constantIndex];
 
@@ -165,8 +167,8 @@ void GLCmdBuffer::PushShaderConstants(GraphicsShaderDataSet *set, int constantIn
 	if (sdata.Stages & ShaderStageBit::Vertex)
 		progs.push_back(m_lastRenderPipe->GetStage(ShaderStageBit::Vertex));
 
-	void *cmdBufStore = std::malloc(4 * sdata.Size);
-	std::memcpy(cmdBufStore, data, 4 * sdata.Size);
+	void *cmdBufStore = std::malloc(4 * sdata.ElementCount);
+	std::memcpy(cmdBufStore, data, 4 * sdata.ElementCount);
 	m_buffersHeld.push_back(cmdBufStore);
 
 	if (sdata.Float)
@@ -284,8 +286,8 @@ void GLCmdBuffer::DrawIndexed(int vertexCount, int instances, int firstIndex, in
 	GLenum topology = m_lastRenderPipe->GetTopology() == GraphicsPrimitiveType::Triangles ? GL_TRIANGLES :
 		m_lastRenderPipe->GetTopology() == GraphicsPrimitiveType::Lines ? GL_LINES :
 		m_lastRenderPipe->GetTopology() == GraphicsPrimitiveType::Patches ? GL_PATCHES : GL_POINTS;
-
-	m_commands.push_back(std::bind(glDrawElementsInstancedBaseVertexBaseInstance, topology, vertexCount, indexType, nullptr, instances, vertexOffset, firstInstance));
+	
+	m_commands.push_back(std::bind(glDrawElementsInstancedBaseVertexBaseInstance, topology, vertexCount, indexType, reinterpret_cast<void *>(firstIndex), instances, vertexOffset, firstInstance));
 }
 
 void GLCmdBuffer::Draw(int vertexCount, int instanceCount, int firstVertex, int firstInstance)

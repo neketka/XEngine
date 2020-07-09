@@ -3,6 +3,9 @@
 
 #include "TestSystem.h"
 
+#include "MeshAsset.h"
+#include "OBJMeshImporter.h"
+
 XEngine *XEngineInstance;
 XEngine *XEngine::m_engineInstance;
 
@@ -17,15 +20,6 @@ void XEngine::InitializeEngine(std::string name, int threadCount, bool defaultSy
 	// Testing below
 	m_engineInstance->m_ecsRegistrar->RegisterComponent<TestComponent>();
 	m_engineInstance->m_ecsRegistrar->AddSystem(new TestSystem);
-
-	Scene *scene = new Scene("Test Scene");
-	scene->GetSystemManager()->AddSystem("TestSystem");
-	m_engineInstance->m_ecsRegistrar->GetSystem("TestSystem")->SetEnabled(true);
-
-	for (int i = 0; i < 800; ++i)
-		scene->GetEntityManager()->CreateEntity({ "TestComponent" });
-
-	m_engineInstance->SetScene(scene);
 }
 
 XEngine& XEngine::GetInstance()
@@ -57,7 +51,9 @@ void XEngine::AddInterface(HardwareInterface *interface, HardwareInterfaceType t
 XEngine::XEngine() : m_scene(nullptr)
 {
 	m_engineInstanceId = GenerateID();
-	m_assetManager = new AssetManager(1e8, 2e9); // Hardcoded numbers
+
+	m_assetManager = new AssetManager(8e8, 2e9); // Hardcoded numbers
+
 	m_sysManager = new SubsystemManager;
 	m_ecsRegistrar = new ECSRegistrar;
 }
@@ -334,11 +330,28 @@ void XEngine::Init()
 		m_ecsThreads[i] = t;
 	}
 
-	m_ecsRegistrar->InitSystems();
+	m_assetManager->RegisterLoader(new MeshAssetLoader(1e12, 1e8));
+	m_assetManager->RegisterImporter(new OBJMeshImporter);
+
+	Scene *scene = new Scene("Test Scene");
+	scene->GetSystemManager()->AddSystem("TestSystem");
+
+	m_engineInstance->m_ecsRegistrar->GetSystem("TestSystem")->SetEnabled(true);
+
+	for (int i = 0; i < 800; ++i)
+		scene->GetEntityManager()->CreateEntity({ "TestComponent" });
+
+	m_engineInstance->SetScene(scene);
 }
 
 void XEngine::Cleanup()
 {
+	if (m_scene)
+	{
+		m_scene->DisableScene();
+		delete m_scene;
+	}
+
 	for (int i = 0; i < m_maxECSThreads; ++i)
 	{
 		m_ecsThreads[i]->join();
@@ -352,12 +365,6 @@ void XEngine::Cleanup()
 			LogMessage("Cleaning up " + interfaceToName[kp.first] + " interface of " + kp.second->GetName(), LogMessageType::Message);
 			kp.second->Destroy(kp.first);
 		}
-	}
-
-	if (m_scene)
-	{
-		m_scene->DisableScene();
-		delete m_scene;
 	}
 }
 

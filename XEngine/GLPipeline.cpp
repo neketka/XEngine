@@ -6,6 +6,10 @@
 
 GLPipeline::GLPipeline(GraphicsContext *context, GraphicsRenderPipelineState& state) : m_state(state), m_context(context)
 {
+	for (GraphicsRenderVertexBufferInputData& data : m_state.VertexInputState.BufferData)
+	{
+		m_bindingStrides[data.BufferBinding] = data.Stride;
+	}
 }
 
 GLPipeline::~GLPipeline()
@@ -206,7 +210,6 @@ void GLPipeline::InitInternal()
 	for (GraphicsRenderVertexBufferInputData& data : m_state.VertexInputState.BufferData)
 	{
 		glVertexArrayBindingDivisor(m_vao, data.BufferBinding, data.Instanced ? 1 : 0);
-		m_bindingStrides[data.BufferBinding] = data.Stride;
 	}
 }
 

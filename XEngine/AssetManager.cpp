@@ -64,7 +64,7 @@ void AssetManager::PreloadAssetBundle(std::string filePath)
 	std::vector<AssetDescriptorPreHeader> preHeaders;
 	std::vector<LoadMemoryPointer> headerPtrs;
 	
-	m_bundleReader.LoadAssetHeadersFromHeader(bundle, headerPtrs, preHeaders);
+	std::vector<std::string> paths = m_bundleReader.LoadAssetHeadersFromHeader(bundle, headerPtrs, preHeaders);
 
 	for (int i = 0; i < preHeaders.size(); ++i)
 	{
@@ -72,9 +72,15 @@ void AssetManager::PreloadAssetBundle(std::string filePath)
 		LoadMemoryPointer& ptr = headerPtrs[i];
 		IAssetLoader *loader = m_loaders[preHeader.AssetType];
 		
-		UniqueId id = GenerateID();
-		IAsset *asset = loader->CreateEmpty(id);
+		IAsset *asset = loader->CreateEmpty(preHeader.Id);
 		loader->Preload(asset, ptr);
+
+		m_pathToId[paths[i]] = preHeader.Id;
+
+		StoredAssetPtr& sap = m_assets[preHeader.Id];
+		sap.Asset = asset;
+		sap.BundlePath = filePath;
+		sap.VirtualPath = paths[i];
 
 		m_loadMemory.FreeSpace(ptr);
 	}
@@ -129,14 +135,12 @@ void AssetManager::PushLoadRequest(IAssetLoader *loader, IAsset *asset, LoadMemo
 	m_loadRequests.push(AssetLoadRequest(loader, asset, loadData));
 }
 
-UniqueId AssetManager::ImportAsAsset(std::string path, std::string filePath)
+void AssetManager::ImportAsAssets(std::string path, std::string filePath)
 {
 	std::string location = XEngineInstance->GetRootPath() + filePath;
 
 	std::string ext = std::filesystem::path(filePath).extension().string().substr(1);
 	m_importers[ext]->Import(path, filePath);
-
-	return m_pathToId[path];
 }
 
 IAsset *AssetManager::GetAssetPtr(UniqueId id)
@@ -154,7 +158,11 @@ void AssetManager::PerformThreadTasks()
 		{
 			std::vector<AssetLoadRange> loadRanges = request.Loader->Load(request.Asset, request.LoadData);
 
-			if (loadRanges.size() == 0)
+			int totalSize = 0;
+			for (AssetLoadRange& range : loadRanges)
+				totalSize += range.Size;
+
+			if (!request.Loader->CanLoad(request.Asset, request.LoadData) && !m_loadMemory.WillFit(totalSize))
 			{
 				m_loadRequests.push(request);
 				continue;
@@ -171,7 +179,7 @@ void AssetManager::PerformThreadTasks()
 			m_bundleReader.LoadAssetDataFromHeader(m_bundleReader.GetOrLoadAssetBundleHeader(stored.BundlePath), stored.VirtualPath, 
 				loadRanges, loadMemories);
 
-			request.Loader->FinishLoad(loadRanges, loadMemories, request.LoadData);
+			request.Loader->FinishLoad(request.Asset, loadRanges, loadMemories, request.LoadData);
 		}
 		while (m_exportRequests.try_pop(eRequest))
 		{
@@ -222,11 +230,6 @@ std::vector<std::string> AssetManager::MergeAssetBundles(std::vector<std::string
 	return std::vector<std::string>();
 }
 
-void AssetManager::DeleteBundleAssetsFromMemory(std::string filePath)
-{
-	// TODO: IMPLEMENT
-}
-
 LocalMemoryAllocator& AssetManager::GetAssetMemory()
 {
 	return m_assetMemory;
@@ -235,6 +238,27 @@ LocalMemoryAllocator& AssetManager::GetAssetMemory()
 LocalMemoryAllocator& AssetManager::GetLoadMemory()
 {
 	return m_loadMemory;
+}
+
+void AssetManager::Copy(IAsset *src, IAsset *dest)
+{
+	if (src->GetTypeName() != dest->GetTypeName())
+		return;
+
+	m_loaders[src->GetTypeName()]->Copy(src, dest);
+}
+
+UniqueId AssetManager::Duplicate(IAsset *src, std::string newPath)
+{
+	IAsset *dest = CreateAssetPtr(newPath, src->GetTypeName());
+	m_loaders[src->GetTypeName()]->Copy(src, dest);
+
+	return dest->GetId();
+}
+
+void AssetManager::DeleteBundleAssetsFromMemory(std::string filePath)
+{
+	// TODO: IMPLEMENT
 }
 
 void AssetManager::CleanUnusedMemory()

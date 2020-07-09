@@ -12,12 +12,6 @@ GPUMemoryAllocator::GPUMemoryAllocator(unsigned long long size, int maxAllocs, b
 	m_allocator.SetMoveCallback(std::bind(&GPUMemoryAllocator::MoveMemory, this, std::placeholders::_1));
 	m_allocator.SetDefragBeginCallback(std::bind(&GPUMemoryAllocator::DefragBegin, this));
 	m_allocator.SetDefragEndCallback(std::bind(&GPUMemoryAllocator::DefragEnd, this));
-
-	for (int i = 0; i < 3; ++i)
-	{
-		m_syncQueue.push(nullptr);
-		m_cmdBuffers.push(nullptr);
-	}
 }
 
 GPUMemoryAllocator::~GPUMemoryAllocator()
@@ -25,13 +19,11 @@ GPUMemoryAllocator::~GPUMemoryAllocator()
 	delete m_memory;
 	if (m_temp)
 		delete m_temp;
-	while (!m_syncQueue.empty())
-	{
-		if (m_syncQueue.front())
-			delete m_syncQueue.front();
-		if (m_cmdBuffers.front())
-			delete m_cmdBuffers.front();
-	}
+}
+
+bool GPUMemoryAllocator::WillFit(int size)
+{
+	return m_allocator.GetFreeSpace() >= size;
 }
 
 PinnedGPUMemory GPUMemoryAllocator::GetMemory(ListMemoryPointer *ptr)
@@ -41,7 +33,50 @@ PinnedGPUMemory GPUMemoryAllocator::GetMemory(ListMemoryPointer *ptr)
 
 ListMemoryPointer *GPUMemoryAllocator::RequestSpace(int bytes, int alignment)
 {
+	m_resizeMutex.lock_shared();
+	if (!WillFit(bytes + alignment - 1))
+		alignment = 1;
+
+	if (!WillFit(bytes) && m_resizable)
+	{
+		m_resizeMutex.unlock_shared();
+		m_resizeMutex.lock();
+
+		unsigned long long oldSize = m_size;
+		unsigned long long newSize = std::exp2l(std::floorl(std::log2l(oldSize)) + 1);
+
+		GraphicsMemoryBuffer *newBuf = m_context->CreateBuffer(newSize, BufferUsageBit::TransferSource | BufferUsageBit::TransferDest,
+			GraphicsMemoryTypeBit::DeviceResident | GraphicsMemoryTypeBit::DynamicAccess);
+
+		GraphicsSyncObject *sync = m_context->CreateSync(false);
+
+		GraphicsCommandBuffer *buf = m_context->GetTransferBufferFromPool();
+		buf->BeginRecording();
+		buf->CopyBufferToBuffer(m_memory, newBuf, 0, 0, oldSize);
+		buf->SignalFence(sync);
+		buf->StopRecording();
+
+		m_context->SubmitCommands(buf, GraphicsQueueType::Transfer);
+
+		sync->Wait(1e32);
+		delete sync;
+
+		delete m_memory;
+		m_memory = newBuf;
+		m_size = newSize;
+		m_allocator.SetSize(newSize);
+
+		m_resizeMutex.unlock();
+		m_resizeMutex.lock_shared();
+	}
+
+	m_resizeMutex.unlock_shared();
 	return m_allocator.AllocateMemory(bytes, alignment);
+}
+
+GraphicsMemoryBuffer *GPUMemoryAllocator::GetMemoryBuffer()
+{
+	return m_memory;
 }
 
 void GPUMemoryAllocator::FreeSpace(ListMemoryPointer *ptr)
@@ -51,41 +86,17 @@ void GPUMemoryAllocator::FreeSpace(ListMemoryPointer *ptr)
 
 void GPUMemoryAllocator::DefragBegin()
 {
-	GraphicsSyncObject *obj = m_syncQueue.front();
-	if (obj)
-	{
-		obj->Wait(1e12);
-		thisBuf = m_cmdBuffers.front();
-	}
-	else
-	{
-		thisBuf = m_context->CreateGraphicsCommandBuffers(1, false, false, true)[0];
-	}
+	thisBuf = XEngineInstance->GetInterface<DisplayInterface>(HardwareInterfaceType::Display)
+		->GetGraphicsContext()->GetTransferBufferFromPool();
 	thisBuf->BeginRecording();
 }
 
 void GPUMemoryAllocator::DefragEnd()
 {
-	GraphicsSyncObject *obj = m_syncQueue.front();
-	if (!obj)
-	{
-		obj = m_context->CreateSync(false);
-	}
-	else
-	{
-		obj->Reset();
-	}
-	thisBuf->SignalFence(obj);
 	thisBuf->StopRecording();
 
 	XEngineInstance->GetInterface<DisplayInterface>(HardwareInterfaceType::Display)
 		->GetGraphicsContext()->SubmitCommands(thisBuf, GraphicsQueueType::Transfer);
-
-	m_syncQueue.pop();
-	m_cmdBuffers.pop();
-
-	m_syncQueue.push(obj);
-	m_cmdBuffers.push(thisBuf);
 }
 
 void GPUMemoryAllocator::MoveMemory(MoveData& data)

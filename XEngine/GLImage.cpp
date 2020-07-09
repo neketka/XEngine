@@ -334,13 +334,14 @@ GLRenderPass::GLRenderPass(GraphicsRenderPassState& state)
 
 void GLRenderPass::PerformPreOps(std::vector<glm::vec4>& attachmentClearValues, int stencil)
 {
-	glClearBufferfi(GL_DEPTH_STENCIL, 0, attachmentClearValues.back().r, stencil); /*
+	glClearBufferfi(GL_DEPTH_STENCIL, 0, attachmentClearValues.back().r, stencil);
+	for (int i : m_clearColors)
+		glClearBufferfv(GL_COLOR, i, &attachmentClearValues[i][0]); 
+	/*
 	if (m_clearDepth)
 		glClearBufferfi(GL_DEPTH, 0, attachmentClearValues.back().r, 0);
 	if (m_clearStencil)
-		glClearBufferfi(GL_STENCIL, 0, 9, stencil);
-	for (int i : m_clearColors) 
-		glClearBufferfv(GL_COLOR, i, &attachmentClearValues[i][0]);*/
+		glClearBufferfi(GL_STENCIL, 0, 9, stencil);*/
 
 	glInvalidateFramebuffer(GL_DRAW_FRAMEBUFFER, m_discard.size(), m_discard.data());
 }

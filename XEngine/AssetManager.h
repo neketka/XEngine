@@ -25,21 +25,20 @@ template<class T>
 class RefCountedAsset
 {
 public:
-	RefCountedAsset(IAsset *held) : m_held(held) { }
-	RefCountedAsset(const RefCountedAsset& asset) : m_held(asset.m_held) { if (m_held) asset.m_held->AddRef(); }
+	RefCountedAsset() : m_held(nullptr) {}
+	RefCountedAsset(IAsset *held) : m_held(held) { if (held) held->AddRef(); }
+	RefCountedAsset(const RefCountedAsset& asset) : m_held(asset.m_held) { asset.m_held->AddRef(); }
 	~RefCountedAsset() { if (m_held) m_held->RemoveRef(); }
 	RefCountedAsset& operator=(const RefCountedAsset& asset) 
 	{ 
+		asset.m_held->AddRef();
 		if (m_held)
-		{
 			m_held->RemoveRef();
-			m_held = asset.m_held;
-			m_held->AddRef();
-		}
+		m_held = asset.m_held;
 		return *this; 
 	}
-	T& Get() { return *dynamic_cast<T *>(m_held); }
-	void RemoveThisReference() { m_held->RemoveRef(); m_held = nullptr; }
+	T& Get() { return *static_cast<T *>(m_held); }
+	void RemoveThisReference() { if (m_held) m_held->RemoveRef(); m_held = nullptr; }
 private:
 	IAsset *m_held;
 };
@@ -53,9 +52,13 @@ public:
 	virtual std::string& GetAssetType() = 0;
 
 	virtual IAsset *CreateEmpty(UniqueId id) = 0; 
+
 	virtual void Preload(IAsset *asset, LoadMemoryPointer header) = 0;
+	virtual bool CanLoad(IAsset *asset, LoadMemoryPointer loadData) = 0;
 	virtual std::vector<AssetLoadRange> Load(IAsset *asset, LoadMemoryPointer loadData) = 0;
-	virtual void FinishLoad(std::vector<AssetLoadRange>& ranges, std::vector<LoadMemoryPointer>& content, LoadMemoryPointer loadData) = 0;
+	virtual void FinishLoad(IAsset *asset, std::vector<AssetLoadRange>& ranges, std::vector<LoadMemoryPointer>& content, LoadMemoryPointer loadData) = 0;
+
+	virtual void Copy(IAsset *src, IAsset *dest) = 0;
 
 	virtual void Unload(IAsset *asset) = 0;
 
@@ -119,6 +122,9 @@ public:
 	XENGINEAPI LocalMemoryAllocator& GetAssetMemory();
 	XENGINEAPI LocalMemoryAllocator& GetLoadMemory();
 
+	XENGINEAPI void Copy(IAsset *src, IAsset *dest);
+	XENGINEAPI UniqueId Duplicate(IAsset *src, std::string newPath);
+
 	XENGINEAPI void CleanUnusedMemory();
 
 	XENGINEAPI void RegisterImporter(IFormatImporter *importer);
@@ -131,7 +137,7 @@ public:
 
 	XENGINEAPI void PushLoadRequest(IAssetLoader *loader, IAsset *asset, LoadMemoryPointer loadData);
 
-	XENGINEAPI UniqueId ImportAsAsset(std::string path, std::string filePath);
+	XENGINEAPI void ImportAsAssets(std::string path, std::string filePath);
 	XENGINEAPI std::vector<std::string> MergeAssetBundles(std::vector<std::string>& bundles, unsigned long long maxSize);
 
 	template<class T>

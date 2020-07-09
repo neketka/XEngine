@@ -1,5 +1,6 @@
 #pragma once
 #include "GraphicsDefs.h"
+#include "MeshAsset.h"
 
 class TestSystem : public ISystem
 {
@@ -14,26 +15,23 @@ public:
 	virtual void AfterEntityUpdate(float deltaTime) override;
 	virtual void PostUpdate(float deltaTime, int threadIndex) override;
 private:
+	RefCountedAsset<MeshAsset> m_cubeA;
+	PinnedGPUMemory m_cubeAVerts;
+	PinnedGPUMemory m_cubeAInds;
+
 	GraphicsCommandBuffer *m_cmdTopBuffer;
 
 	GraphicsShader *m_vshader;
 	GraphicsShader *m_fshader;
-	GraphicsShaderDataSet *m_shaderData;
-	GraphicsShaderResourceInstance *m_shaderResourceInstance;
 	GraphicsRenderPass *m_renderPass;
 	GraphicsRenderTarget *m_renderTarget;
 	GraphicsImageObject *m_depthBufferObject;
 	GraphicsImageView *m_depthBufferView;
 	GraphicsRenderPipeline *m_pipeline;
-	GraphicsCommandBuffer *m_cmdRenderBuffer;
 	GraphicsMemoryBuffer *m_vertexData;
-	
-	GraphicsImageObject *m_texture;
-	GraphicsImageView *m_textureView;
-	GraphicsSampler *m_sampler;
-	GraphicsMemoryBuffer *m_textureStagingBuffer;
 
-	GraphicsMemoryBuffer *m_stagingBuffer;
+	GraphicsShaderDataSet *m_shaderData;
+
 	GraphicsSpecificShaderCode *m_shaderVertexCode;
 	GraphicsSpecificShaderCode *m_shaderFragmentCode;
 	GraphicsSpecificSpecializationData *m_specData;

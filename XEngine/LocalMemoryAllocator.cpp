@@ -15,8 +15,20 @@ LocalMemoryAllocator::~LocalMemoryAllocator()
 	std::free(m_memory);
 }
 
+bool LocalMemoryAllocator::WillFit(int size)
+{
+	return m_allocator.GetFreeSpace() >= size;
+}
+
 ListMemoryPointer *LocalMemoryAllocator::RequestSpace(int bytes, int alignment)
 {
+	if (!WillFit(bytes + alignment - 1))
+		alignment = 1;
+
+	if (!WillFit(bytes) && m_resizable)
+	{
+	}
+
 	return m_allocator.AllocateMemory(bytes, alignment);
 }
 

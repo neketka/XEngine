@@ -6,6 +6,7 @@ ListAllocator::ListAllocator(unsigned long long size, int maxAllocs)
 	m_maxSize = size;
 	m_pointer = 0;
 	m_maxHeaders = maxAllocs;
+	m_freeSpace = size;
 
 	m_headerLinks.resize(maxAllocs);
 	for (int i = 0; i < maxAllocs; ++i)
@@ -18,7 +19,8 @@ ListAllocator::~ListAllocator()
 
 ListMemoryPointer *ListAllocator::AllocateMemory(int size, int alignment)
 {
-	m_defragLock.lock_shared();
+	std::lock_guard<std::mutex> lock0(m_allocLock);
+	//std::shared_lock<std::shared_mutex> lock1(m_defragLock);
 
 	int alignmentPad = m_pointer % alignment;
 	unsigned long long thisPtr = m_pointer + alignmentPad;
@@ -64,11 +66,10 @@ ListMemoryPointer *ListAllocator::AllocateMemory(int size, int alignment)
 		h->Padding = alignmentPad;
 		h->Pinned = false;
 		m_last->Next = h;
+		m_last = h;
 	}
 
 	m_pointer = newPtr;
-
-	m_defragLock.unlock_shared();
 
 	return dynamic_cast<ListMemoryPointer *>(m_last);
 }
@@ -79,8 +80,10 @@ void ListAllocator::DeallocateMemory(ListMemoryPointer *ptr)
 
 	m_defragLock.lock_shared();
 	ListEntryHeader *h = static_cast<ListEntryHeader *>(ptr);
-	h->Prev->Next = h->Next;
-	h->Next->Prev = h->Prev;
+	if (h->Prev)
+		h->Prev->Next = h->Next;
+	if (h->Next)
+		h->Next->Prev = h->Prev;
 	m_freeList.push(h->Index);
 	m_freeSpace += h->Size + h->Padding;
 	m_defragLock.unlock_shared();

@@ -3,11 +3,6 @@
 
 ECSRegistrar::~ECSRegistrar()
 {
-	for (auto sys : m_systems)
-	{
-		sys.second->Destroy();
-		delete sys.second;
-	}
 }
 
 void ECSRegistrar::AddSystem(ISystem *system)
@@ -73,10 +68,6 @@ bool ECSRegistrar::IsComponentBuffered(UniqueId id)
 
 void ECSRegistrar::InitSystems()
 {
-	for (auto sys : m_systems)
-	{
-		sys.second->Initialize();
-	}
 }
 
 Scene::Scene(std::string name) : m_name(name)
@@ -95,10 +86,18 @@ Scene::~Scene()
 
 void Scene::EnableScene()
 {
+	for (auto sys : m_sysManager->GetSystems())
+	{
+		sys->Initialize();
+	}
 }
 
 void Scene::DisableScene()
 {
+	for (auto sys : m_sysManager->GetSystems())
+	{
+		sys->Destroy();
+	}
 }
 
 std::string Scene::GetName()

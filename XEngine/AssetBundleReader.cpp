@@ -20,7 +20,7 @@ AssetBundleHeader& AssetBundleReader::GetOrLoadAssetBundleHeader(std::string pat
 	for (int i = 0; i < count; ++i)
 	{
 		int pathLen = 0;
-		stream.read(reinterpret_cast<char *>(pathLen), sizeof(int));
+		stream.read(reinterpret_cast<char *>(&pathLen), sizeof(int));
 		char *path = new char[pathLen + 1];
 		stream.read(path, pathLen);
 		path[pathLen] = '\0';
@@ -37,12 +37,15 @@ AssetBundleHeader& AssetBundleReader::GetOrLoadAssetBundleHeader(std::string pat
 	return header;
 }
 
-void AssetBundleReader::LoadAssetHeadersFromHeader(AssetBundleHeader& header, std::vector<LoadMemoryPointer>& headersDest,
+std::vector<std::string> AssetBundleReader::LoadAssetHeadersFromHeader(AssetBundleHeader& header, std::vector<LoadMemoryPointer>& headersDest,
 	std::vector<AssetDescriptorPreHeader>& preHeadersDest)
 {
 	std::ifstream stream(header.Path.c_str(), std::ifstream::in | std::ifstream::binary);
 	headersDest.reserve(header.Assets.size());
 	preHeadersDest.resize(header.Assets.size());
+
+	std::vector<std::string> paths;
+	paths.reserve(header.Assets.size());
 
 	AssetManager *manager = XEngineInstance->GetAssetManager();
 	int index = 0;
@@ -57,10 +60,14 @@ void AssetBundleReader::LoadAssetHeadersFromHeader(AssetBundleHeader& header, st
 		PinnedLocalMemory<char> header = manager->GetLoadMemory().GetMemory<char>(headersDest.back());
 		stream.read(header.GetData(), preheader.HeaderSize);
 
+		paths.push_back(pair.first);
+
 		++index;
 	}
 
 	stream.close();
+
+	return paths;
 }
 
 void AssetBundleReader::LoadAssetDataFromHeader(AssetBundleHeader& header, std::string path, 

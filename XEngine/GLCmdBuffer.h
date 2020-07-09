@@ -7,7 +7,7 @@
 class GLCmdBuffer : public GraphicsCommandBuffer 
 {
 public:
-	GLCmdBuffer(GraphicsContext *context);
+	GLCmdBuffer(GraphicsContext *context, bool pooled=false);
 	virtual ~GLCmdBuffer() override;
 	virtual void BindRenderPipeline(GraphicsRenderPipeline *pipeline) override;
 	virtual void BindComputePipeline(GraphicsComputePipeline *pipeline) override;
@@ -58,6 +58,7 @@ public:
 	virtual void BeginRecording() override;
 	virtual void StopRecording() override;
 	virtual void ExecuteSubCommandBuffer(GraphicsCommandBuffer *commandBuffer) override;
+	bool IsPooled() { return m_pooled; }
 
 	void Execute();
 private:
@@ -75,6 +76,7 @@ private:
 	unsigned int m_frontRefMask;
 	unsigned int m_backCompMask;
 	unsigned int m_backRefMask;
+	bool m_pooled;
 
 	int m_minTextureUnit = 0;
 	int m_minImageUnit = 0;

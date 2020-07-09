@@ -2,6 +2,7 @@
 #include "TestSystem.h"
 #include "GLShaderCompilation.h"
 #include "testimage.h"
+#include <glm/gtc/matrix_transform.hpp>
 
 class TestEntityData
 {
@@ -22,42 +23,40 @@ out gl_PerVertex
   float gl_ClipDistance[];
 };
 
-layout(location = 0) out vec2 uvOut;
+layout(location = 0) smooth out vec3 normal;
 
-layout(location = 0) in vec3 pos;
-layout(location = 1) in vec2 uv;
+layout(location = 0) in vec4 posr;
+layout(location = 1) in vec4 normalg;
+layout(location = 2) in vec4 tangentb;
+layout(location = 3) in vec4 uv0a;
+
+layout(location = 0) uniform mat4 mvp;
+layout(location = 1) uniform mat3 nrm;
 
 void main()
 {
-	uvOut = uv;
-	gl_Position = vec4(pos, 1);
+	normal = nrm * normalg.xyz;
+	gl_Position = mvp * vec4(posr.xyz, 1);
 }
 
 )glsl", ShaderStageBit::Vertex);
 	m_shaderFragmentCode = new GLShaderCode(R"glsl(
 layout(location = 0) out vec4 color;
-layout(location = 0) in vec2 uv;
-
-layout(location = 0) uniform sampler2D tex;
+layout(location = 0) smooth in vec3 normal;
 
 void main()
 {
-	color = texture(tex, uv);
+	float nDotl = dot(normal, -normalize(vec3(-0.5, -0.5, -1)));
+	color = vec4(vec3(0.3) + vec3(1, 1, 1) * nDotl, 1);
 }
 
 )glsl", ShaderStageBit::Fragment);
 
-	glm::vec3 vertices[] = {
-		glm::vec3(0, 0, 0.5f),
-		glm::vec3(0, 1, 0.5f),
-		glm::vec3(1, 0, 0.5f)
-	};
+	XEngineInstance->GetAssetManager()->PreloadAssetBundle("./Assets/models.xasset");
 
-	glm::vec2 uvs[] = {
-		glm::vec2(0, 0),
-		glm::vec2(0, 1),
-		glm::vec2(1, 0)
-	};
+	UniqueId cubeAId = XEngineInstance->GetAssetManager()->GetIdByPath("assets/car");
+	m_cubeA = XEngineInstance->GetAssetManager()->GetAsset<MeshAsset>(cubeAId);
+	m_cubeA.Get().LoadFullMesh();
 
 	m_vshader = context->CreateShader(m_shaderVertexCode);
 	m_fshader = context->CreateShader(m_shaderFragmentCode);
@@ -78,22 +77,6 @@ void main()
 	smstate.MaxLOD = 1000;
 	smstate.MaxAnisotropy = 1;
 	smstate.DepthComparisonMode = ComparisonMode::Less;
-
-	m_sampler = context->CreateSampler(smstate);
-	m_texture = context->CreateImage(ImageType::Image2D, VectorDataFormat::R8G8B8A8Unorm, glm::ivec3(testwidth, testheight, 1), 1,
-		ImageUsageBit::TransferDest | ImageUsageBit::Sampling);
-	m_textureView = m_texture->CreateView(ImageType::Image2D, VectorDataFormat::R8G8B8A8Unorm, 0, 1, 0, 1, ImageSwizzleComponent::Red, ImageSwizzleComponent::Green,
-		ImageSwizzleComponent::Blue, ImageSwizzleComponent::Alpha);
-
-	GraphicsShaderResourceViewData textureData;
-	textureData.Binding = 0;
-	textureData.Count = 1;
-	textureData.Stages = ShaderStageBit::Fragment;
-	textureData.Type = ShaderResourceType::ImageAndSampler;
-
-	m_shaderData = context->CreateShaderDataSet({ textureData }, {});
-	m_shaderResourceInstance = context->CreateShaderResourceInstance(textureData);
-	context->UpdateShaderImageSamplerResourceInstance(m_shaderResourceInstance, { m_textureView }, { m_sampler });
 
 	GraphicsRenderSubpassState rss;
 	rss.ColorAttachments = { 0 };
@@ -118,29 +101,6 @@ void main()
 	GraphicsShaderState fss;
 	fss.Shader = m_fshader;
 	fss.Specialization = m_specData;
-
-	GraphicsRenderVertexAttributeData att;
-	att.BufferBinding = 0;
-	att.Format = VectorDataFormat::R32G32B32Float;
-	att.InElementOffset = 0;
-	att.ShaderAttributeLocation = 0;
-
-	GraphicsRenderVertexBufferInputData vbid;
-	vbid.BufferBinding = 0;
-	vbid.Instanced = false;
-	vbid.Stride = sizeof(glm::vec3);
-
-	GraphicsRenderVertexAttributeData att1;
-	att1.BufferBinding = 1;
-	att1.Format = VectorDataFormat::R32G32Float;
-	att1.InElementOffset = 0;
-	att1.ShaderAttributeLocation = 1;
-
-	GraphicsRenderVertexBufferInputData vbid1;
-	vbid1.BufferBinding = 1;
-	vbid1.Instanced = false;
-	vbid1.Stride = sizeof(glm::vec2);
-
 	GraphicsRenderPipelineState ps;
 	ps.BlendingState.DoLogicOperations = false;
 
@@ -159,59 +119,33 @@ void main()
 
 	ps.RenderTessellationState.EnableState = false;
 	ps.Shaders = { vss, fss };
-	ps.ShaderDataSet = m_shaderData;
 
 	ps.ViewportState.ViewportBounds = glm::vec4(0, 0, 800, 600);
 	ps.ViewportState.ScissorBounds = glm::vec4(0, 0, 800, 600);
 
-	ps.VertexInputState.PrimitiveRestart = false;
-	ps.VertexInputState.Topology = GraphicsPrimitiveType::Triangles;
-	ps.VertexInputState.AttributeData = { att, att1 };
-	ps.VertexInputState.BufferData = { vbid, vbid1 };
-	
+	GraphicsShaderConstantData mvp;
+	mvp.Float = true;
+	mvp.Matrix = true;
+	mvp.Offset = 0;
+	mvp.VectorLength = 16;
+	mvp.Stages = ShaderStageBit::Vertex;
+	mvp.ElementCount = 16;
+
+	GraphicsShaderConstantData nrm;
+	nrm.Float = true;
+	nrm.Matrix = true;
+	nrm.Offset = 1;
+	nrm.VectorLength = 9;
+	nrm.Stages = ShaderStageBit::Vertex;
+	nrm.ElementCount = 9;
+
+	m_shaderData = context->CreateShaderDataSet({}, { mvp, nrm });
+	ps.ShaderDataSet = m_shaderData;
+
+	MeshAssetLoader *mLoader = static_cast<MeshAssetLoader *>(XEngineInstance->GetAssetManager()->GetLoader("Mesh"));
+
+	mLoader->SetVertexInputState(ps.VertexInputState, m_cubeA.Get().GetVertexFormatId());
 	m_pipeline = context->CreateGraphicsPipeline(ps);
-	
-	m_stagingBuffer = context->CreateBuffer(16e6, BufferUsageBit::TransferSource, GraphicsMemoryTypeBit::HostVisible | GraphicsMemoryTypeBit::Coherent);
-
-	m_vertexData = context->CreateBuffer(3 * sizeof(glm::vec3) + 3 * sizeof(glm::vec2), BufferUsageBit::TransferDest | BufferUsageBit::VertexBuffer,
-		GraphicsMemoryTypeBit::DeviceResident);
-	
-	m_stagingBuffer->MapBuffer(0, 16e3, true, true);
-
-	std::memcpy(m_stagingBuffer->GetMappedPointer(), vertices, 3 * sizeof(glm::vec3));
-	std::memcpy(reinterpret_cast<char *>(m_stagingBuffer->GetMappedPointer()) + 3 * sizeof(glm::vec3), uvs, 3 * sizeof(glm::vec2));
-
-	GraphicsBufferImageCopyRegion texRegion;
-	texRegion.BufferImageHeight = 0;
-	texRegion.BufferRowLength = 0;
-	texRegion.BufferOffset = 3 * sizeof(glm::vec3) + 3 * sizeof(glm::vec2);
-	texRegion.Level = 0;
-	texRegion.Offset = glm::ivec3(0, 0, 0);
-	texRegion.Size = glm::ivec3(testwidth, testheight, 1);
-
-	for (int i = 0; i < testwidth * testheight; ++i)
-	{
-		char *location = reinterpret_cast<char *>(m_stagingBuffer->GetMappedPointer()) + 3 * sizeof(glm::vec3) + 3 * sizeof(glm::vec2) + i * 4;
-		HEADER_PIXEL(header_data, location);
-	}
-
-	m_cmdRenderBuffer = context->CreateGraphicsCommandBuffers(1, false, false, false)[0];
-	m_cmdRenderBuffer->BeginRecording();
-	m_cmdRenderBuffer->CopyBufferToBuffer(m_stagingBuffer, m_vertexData, 0, 0, 3 * sizeof(glm::vec3) + 3 * sizeof(glm::vec2));
-	m_cmdRenderBuffer->CopyBufferToImageWithConversion(m_stagingBuffer, VectorDataFormat::R8G8B8A8Uint, m_texture, { texRegion });
-	m_cmdRenderBuffer->StopRecording();
-
-	context->SubmitCommands(m_cmdRenderBuffer, GraphicsQueueType::Transfer);
-
-	m_cmdTopBuffer = context->CreateGraphicsCommandBuffers(1, false, false, false)[0];
-	m_cmdTopBuffer->BeginRecording();
-	m_cmdTopBuffer->BindRenderPass(m_renderTarget, m_renderPass, { glm::vec4(0, 0, 0, 1), glm::vec4(1, 1, 1, 1) }, 0);
-	m_cmdTopBuffer->BindRenderPipeline(m_pipeline);
-	m_cmdTopBuffer->BindVertexBuffers(0, { m_vertexData, m_vertexData }, { 0, 3 * sizeof(glm::vec3) });
-	m_cmdTopBuffer->BindRenderShaderResourceInstance(m_shaderData, m_shaderResourceInstance, 0, 0);
-	m_cmdTopBuffer->Draw(3, 1, 0, 0);
-	m_cmdTopBuffer->EndRenderPass();
-	m_cmdTopBuffer->StopRecording();
 }
 
 void TestSystem::Destroy()
@@ -220,25 +154,15 @@ void TestSystem::Destroy()
 		GetInterface<DisplayInterface>(HardwareInterfaceType::Display)->GetGraphicsContext();
 	context->SyncWithCommandSubmissionThread();
 
-	m_stagingBuffer->UnmapBuffer();
-
-	delete m_textureView;
-	delete m_texture;
-	delete m_shaderResourceInstance;
-	delete m_sampler;
-	delete m_textureStagingBuffer;
-	delete m_cmdTopBuffer;
+	delete m_shaderData;
 	delete m_vshader;
 	delete m_fshader;
-	delete m_shaderData;
 	delete m_renderPass;
 	delete m_depthBufferView;
 	delete m_depthBufferObject;
 	delete m_renderTarget;
 	delete m_pipeline;
-	delete m_cmdRenderBuffer;
 	delete m_vertexData;
-	delete m_stagingBuffer;
 	delete m_shaderVertexCode;
 	delete m_shaderFragmentCode;
 	delete m_specData;
@@ -273,10 +197,45 @@ void TestSystem::Update(float deltaTime, ComponentDataIterator& data)
 	}
 }
 
+float dT = 0;
 void TestSystem::AfterEntityUpdate(float deltaTime)
 {
+	GraphicsContext *context = XEngine::GetInstance().
+		GetInterface<DisplayInterface>(HardwareInterfaceType::Display)->GetGraphicsContext();
+
+	glm::mat4 mvpM = glm::perspective(glm::radians(70.f), 800.f / 600.f, 0.3f, 1000.f)
+		* glm::lookAt(glm::vec3(0, 0, 0), glm::vec3(0, 0, -4), glm::vec3(0, 1, 0))
+		* glm::translate(glm::mat4(), glm::vec3(0, -2.f, -10.f))
+		* glm::rotate(glm::mat4(), dT, glm::vec3(0, 1, 0));
+
+	glm::mat3 nrm = glm::mat3(glm::transpose(glm::inverse(glm::translate(glm::mat4(), glm::vec3(0, -2.f, -10.f))
+		* glm::rotate(glm::mat4(), dT, glm::vec3(0, 1, 0)))));
+
+	MeshAssetLoader *mLoader = static_cast<MeshAssetLoader *>(XEngineInstance->GetAssetManager()->GetLoader("Mesh"));
+
+	m_cmdTopBuffer = context->GetGraphicsBufferFromPool();
+	m_cmdTopBuffer->BeginRecording();
+	m_cmdTopBuffer->BindRenderPass(m_renderTarget, m_renderPass, { glm::vec4(0, 0, 0, 1), glm::vec4(1, 1, 1, 1) }, 0);
+	if (m_cubeA.Get().IsFullMeshAvailable())
+	{
+		m_cubeAVerts = m_cubeA.Get().GetGPUVertices(false);
+		m_cubeAInds = m_cubeA.Get().GetGPUIndices(false);
+
+		m_cmdTopBuffer->BindRenderPipeline(m_pipeline);
+		m_cmdTopBuffer->BindVertexBuffers(0, { m_cubeAVerts.GetBuffer() }, { 0 });
+		m_cmdTopBuffer->BindIndexBuffer(m_cubeAInds.GetBuffer(), false);
+		m_cmdTopBuffer->PushShaderConstants(m_shaderData, 0, 0, 1, &mvpM);
+		m_cmdTopBuffer->PushShaderConstants(m_shaderData, 1, 0, 1, &nrm);
+		m_cmdTopBuffer->DrawIndexed(m_cubeA.Get().GetIndexCount(false), 1, m_cubeAInds.GetPointer()->Pointer / sizeof(int),
+			m_cubeAVerts.GetPointer()->Pointer / mLoader->GetMeshMemory(m_cubeA.Get().GetVertexFormatId()).BytesPerVertex, 0);
+	}
+	m_cmdTopBuffer->EndRenderPass();
+	m_cmdTopBuffer->StopRecording();
+
 	XEngine::GetInstance().GetInterface<DisplayInterface>(HardwareInterfaceType::Display)->GetGraphicsContext()
 		->SubmitCommands(m_cmdTopBuffer, GraphicsQueueType::Graphics);
+
+	dT += deltaTime;
 }
 
 void TestSystem::PostUpdate(float deltaTime, int threadIndex)

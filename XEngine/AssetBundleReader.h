@@ -48,7 +48,7 @@ public:
 	AssetBundleReader() {}
 
 	AssetBundleHeader& GetOrLoadAssetBundleHeader(std::string path);
-	void LoadAssetHeadersFromHeader(AssetBundleHeader& header, std::vector<LoadMemoryPointer>& headersDest,
+	std::vector<std::string> LoadAssetHeadersFromHeader(AssetBundleHeader& header, std::vector<LoadMemoryPointer>& headersDest,
 		std::vector<AssetDescriptorPreHeader>& preHeadersDest);
 	void LoadAssetDataFromHeader(AssetBundleHeader& header, std::string path,
 		std::vector<AssetLoadRange>& ranges, std::vector<LoadMemoryPointer>& dest);

@@ -37,6 +37,12 @@
     <Filter Include="Geometry">
       <UniqueIdentifier>{009f7e3b-e736-44bd-b4a7-66fd76242095}</UniqueIdentifier>
     </Filter>
+    <Filter Include="Asset Management\Assets">
+      <UniqueIdentifier>{fff7328d-6ef2-4d52-a51d-84f121278a2c}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Asset Management\Importers">
+      <UniqueIdentifier>{e027d5ec-99bf-4bc3-aa91-7b81b8f7b05c}</UniqueIdentifier>
+    </Filter>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="framework.h">
@@ -156,9 +162,6 @@
     <ClInclude Include="AssetBundleReader.h">
       <Filter>Asset Management</Filter>
     </ClInclude>
-    <ClInclude Include="MeshAsset.h">
-      <Filter>Asset Management</Filter>
-    </ClInclude>
     <ClInclude Include="Bounding.h">
       <Filter>Geometry</Filter>
     </ClInclude>
@@ -173,6 +176,18 @@
     </ClInclude>
     <ClInclude Include="GPURingQueue.h">
       <Filter>Allocators</Filter>
+    </ClInclude>
+    <ClInclude Include="FileSpecBuilder.h">
+      <Filter>Asset Management</Filter>
+    </ClInclude>
+    <ClInclude Include="MeshAsset.h">
+      <Filter>Asset Management\Assets</Filter>
+    </ClInclude>
+    <ClInclude Include="TextureAsset.h">
+      <Filter>Asset Management\Assets</Filter>
+    </ClInclude>
+    <ClInclude Include="OBJMeshImporter.h">
+      <Filter>Asset Management\Importers</Filter>
     </ClInclude>
   </ItemGroup>
   <ItemGroup>
@@ -245,9 +260,6 @@
     <ClCompile Include="AssetBundleReader.cpp">
       <Filter>Asset Management</Filter>
     </ClCompile>
-    <ClCompile Include="MeshAsset.cpp">
-      <Filter>Asset Management</Filter>
-    </ClCompile>
     <ClCompile Include="Bounding.cpp">
       <Filter>Geometry</Filter>
     </ClCompile>
@@ -262,6 +274,18 @@
     </ClCompile>
     <ClCompile Include="GPURingQueue.cpp">
       <Filter>Allocators</Filter>
+    </ClCompile>
+    <ClCompile Include="FileSpecBuilder.cpp">
+      <Filter>Asset Management</Filter>
+    </ClCompile>
+    <ClCompile Include="MeshAsset.cpp">
+      <Filter>Asset Management\Assets</Filter>
+    </ClCompile>
+    <ClCompile Include="TextureAsset.cpp">
+      <Filter>Asset Management\Assets</Filter>
+    </ClCompile>
+    <ClCompile Include="OBJMeshImporter.cpp">
+      <Filter>Asset Management\Importers</Filter>
     </ClCompile>
   </ItemGroup>
   <ItemGroup>

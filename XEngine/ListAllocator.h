@@ -77,6 +77,7 @@ private:
 	void Defragment();
 
 	std::shared_mutex m_defragLock;
+	std::mutex m_allocLock;
 	
 	std::vector<ListEntryHeader> m_headerLinks;
 	concurrency::concurrent_queue<int> m_freeList;
@@ -84,7 +85,7 @@ private:
 	ListEntryHeader *m_first = nullptr;
 	ListEntryHeader *m_last = nullptr;
 
-	std::atomic<unsigned long long> m_pointer;
+	unsigned long long m_pointer;
 	std::atomic<unsigned long long> m_freeSpace;
 
 	unsigned long long m_maxSize;

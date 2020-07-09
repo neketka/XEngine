@@ -8,6 +8,10 @@ SubsystemManager::SubsystemManager()
 
 SubsystemManager::~SubsystemManager()
 {
+	for (auto sys : m_systems)
+	{
+		sys->Destroy();
+	}
 }
 
 ISystem *SubsystemManager::GetSystem(std::string name)
@@ -25,6 +29,7 @@ void SubsystemManager::AddSystem(std::string name)
 {
 	ECSRegistrar *registrar = XEngine::GetInstance().GetECSRegistrar();
 	m_systems.push_back(registrar->GetSystem(name));
+	m_systems.back()->Initialize();
 }
 
 void SubsystemManager::InitializeSystemOrdering()

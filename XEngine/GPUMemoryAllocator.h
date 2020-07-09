@@ -11,6 +11,7 @@
 class PinnedGPUMemory
 {
 public:
+	PinnedGPUMemory() {}
 	PinnedGPUMemory(std::shared_ptr<PinnedListMemory> mem, GraphicsMemoryBuffer *buffer, int size) 
 		: m_buffer(buffer), m_mem(mem), m_size(size) {}
 	GraphicsMemoryBuffer *GetBuffer() { return m_buffer; }
@@ -28,18 +29,19 @@ class GPUMemoryAllocator
 public:
 	XENGINEAPI GPUMemoryAllocator(unsigned long long size, int maxAllocs, bool resizable);
 	XENGINEAPI ~GPUMemoryAllocator();
+	XENGINEAPI bool WillFit(int size);
 	XENGINEAPI PinnedGPUMemory GetMemory(ListMemoryPointer *ptr);
-	XENGINEAPI ListMemoryPointer *RequestSpace(int bytes, int alignment = 0);
+	XENGINEAPI ListMemoryPointer *RequestSpace(int bytes, int alignment = 1);
+	XENGINEAPI GraphicsMemoryBuffer *GetMemoryBuffer();
 	XENGINEAPI void FreeSpace(ListMemoryPointer *ptr);
 private:
 	void DefragBegin();
 	void DefragEnd();
 	void MoveMemory(MoveData& data);
+	
+	std::shared_mutex m_resizeMutex;
 
 	GraphicsContext *m_context;
-	
-	std::queue<GraphicsSyncObject *> m_syncQueue;
-	std::queue<GraphicsCommandBuffer *> m_cmdBuffers;
 
 	GraphicsCommandBuffer *thisBuf;
 
