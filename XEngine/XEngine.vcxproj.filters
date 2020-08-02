@@ -189,6 +189,24 @@
     <ClInclude Include="OBJMeshImporter.h">
       <Filter>Asset Management\Importers</Filter>
     </ClInclude>
+    <ClInclude Include="ImageImporter.h">
+      <Filter>Asset Management\Importers</Filter>
+    </ClInclude>
+    <ClInclude Include="ShaderAsset.h">
+      <Filter>Asset Management\Assets</Filter>
+    </ClInclude>
+    <ClInclude Include="DataAsset.h">
+      <Filter>Asset Management\Assets</Filter>
+    </ClInclude>
+    <ClInclude Include="GLSLImporter.h">
+      <Filter>Asset Management\Importers</Filter>
+    </ClInclude>
+    <ClInclude Include="SceneAsset.h">
+      <Filter>Asset Management\Assets</Filter>
+    </ClInclude>
+    <ClInclude Include="ProtoAsset.h">
+      <Filter>Asset Management\Assets</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="ChunkAllocator.cpp">
@@ -286,6 +304,24 @@
     </ClCompile>
     <ClCompile Include="OBJMeshImporter.cpp">
       <Filter>Asset Management\Importers</Filter>
+    </ClCompile>
+    <ClCompile Include="ImageImporter.cpp">
+      <Filter>Asset Management\Importers</Filter>
+    </ClCompile>
+    <ClCompile Include="ShaderAsset.cpp">
+      <Filter>Asset Management\Assets</Filter>
+    </ClCompile>
+    <ClCompile Include="DataAsset.cpp">
+      <Filter>Asset Management\Assets</Filter>
+    </ClCompile>
+    <ClCompile Include="GLSLImporter.cpp">
+      <Filter>Asset Management\Importers</Filter>
+    </ClCompile>
+    <ClCompile Include="SceneAsset.cpp">
+      <Filter>Asset Management\Assets</Filter>
+    </ClCompile>
+    <ClCompile Include="ProtoAsset.cpp">
+      <Filter>Asset Management\Assets</Filter>
     </ClCompile>
   </ItemGroup>
   <ItemGroup>

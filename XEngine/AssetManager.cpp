@@ -3,7 +3,7 @@
 
 #include <filesystem>
 
-AssetManager::AssetManager(int loadMemSize, int assetMemSize) : m_loadMemory(loadMemSize, 4096, true), m_assetMemory(assetMemSize, 1e6, true)
+AssetManager::AssetManager(int32_t loadMemSize, int32_t assetMemSize) : m_loadMemory(loadMemSize, 4096, true), m_assetMemory(assetMemSize, 1e6, true)
 {
 	m_running = true;
 	m_assetLoadingThread = new std::thread(&AssetManager::PerformThreadTasks, this);
@@ -66,7 +66,7 @@ void AssetManager::PreloadAssetBundle(std::string filePath)
 	
 	std::vector<std::string> paths = m_bundleReader.LoadAssetHeadersFromHeader(bundle, headerPtrs, preHeaders);
 
-	for (int i = 0; i < preHeaders.size(); ++i)
+	for (int32_t i = 0; i < preHeaders.size(); ++i)
 	{
 		AssetDescriptorPreHeader& preHeader = preHeaders[i];
 		LoadMemoryPointer& ptr = headerPtrs[i];
@@ -135,12 +135,17 @@ void AssetManager::PushLoadRequest(IAssetLoader *loader, IAsset *asset, LoadMemo
 	m_loadRequests.push(AssetLoadRequest(loader, asset, loadData));
 }
 
-void AssetManager::ImportAsAssets(std::string path, std::string filePath)
+void AssetManager::PushUnloadRequest(IAssetLoader *loader, IAsset *asset)
+{
+	m_unloadRequests.push(AssetUnloadRequest(loader, asset));
+}
+
+void AssetManager::ImportAsAssets(std::string path, std::string filePath, void *settings)
 {
 	std::string location = XEngineInstance->GetRootPath() + filePath;
 
 	std::string ext = std::filesystem::path(filePath).extension().string().substr(1);
-	m_importers[ext]->Import(path, filePath);
+	m_importers[ext]->Import(path, filePath, ext, settings);
 }
 
 IAsset *AssetManager::GetAssetPtr(UniqueId id)
@@ -151,6 +156,7 @@ IAsset *AssetManager::GetAssetPtr(UniqueId id)
 void AssetManager::PerformThreadTasks()
 {
 	AssetLoadRequest request(nullptr, nullptr, nullptr);
+	AssetUnloadRequest uRequest(nullptr, nullptr);
 	AssetExportRequest eRequest("", {});
 	while (m_running)
 	{
@@ -158,7 +164,7 @@ void AssetManager::PerformThreadTasks()
 		{
 			std::vector<AssetLoadRange> loadRanges = request.Loader->Load(request.Asset, request.LoadData);
 
-			int totalSize = 0;
+			int32_t totalSize = 0;
 			for (AssetLoadRange& range : loadRanges)
 				totalSize += range.Size;
 
@@ -169,7 +175,7 @@ void AssetManager::PerformThreadTasks()
 			}
 
 			std::vector<LoadMemoryPointer> loadMemories(loadRanges.size());
-			for (int i = 0; i < loadRanges.size(); ++i)
+			for (int32_t i = 0; i < loadRanges.size(); ++i)
 			{
 				loadMemories[i] = m_loadMemory.RequestSpace(loadRanges[i].Size);
 			}
@@ -180,6 +186,10 @@ void AssetManager::PerformThreadTasks()
 				loadRanges, loadMemories);
 
 			request.Loader->FinishLoad(request.Asset, loadRanges, loadMemories, request.LoadData);
+		}
+		while (m_unloadRequests.try_pop(uRequest))
+		{
+			uRequest.Loader->Unload(uRequest.Asset);
 		}
 		while (m_exportRequests.try_pop(eRequest))
 		{
@@ -197,8 +207,9 @@ void AssetManager::ExportAssetBundleToDisc(std::string filePath, std::vector<Uni
 	std::vector<std::string> paths(assets.size());
 	std::vector<LoadMemoryPointer> headers(assets.size());
 	std::vector<LoadMemoryPointer> contents(assets.size());
+	std::vector<std::vector<AssetLoadRange>> ranges(assets.size());
 
-	for (int i = 0; i < assets.size(); ++i)
+	for (int32_t i = 0; i < assets.size(); ++i)
 	{
 		UniqueId& id = assets[i];
 		StoredAssetPtr& asset = m_assets[id];
@@ -212,19 +223,20 @@ void AssetManager::ExportAssetBundleToDisc(std::string filePath, std::vector<Uni
 		LoadMemoryPointer& header = headers[i];
 		LoadMemoryPointer& content = contents[i];
 
-		loader->Export(asset.Asset, preHeader, header, content);
+		loader->Export(asset.Asset, preHeader, header, content, ranges[i]);
 	}
 
-	m_bundleReader.ExportAssetBundleToDisc(location, preHeaders, paths, headers, contents);
+	m_bundleReader.ExportAssetBundleToDisc(location, preHeaders, paths, headers, contents, ranges);
 
-	for (int i = 0; i < assets.size(); ++i)
+	for (int32_t i = 0; i < assets.size(); ++i)
 	{
 		m_loadMemory.FreeSpace(headers[i]);
-		m_loadMemory.FreeSpace(contents[i]);
+		if (contents[i])
+			m_loadMemory.FreeSpace(contents[i]);
 	}
 }
 
-std::vector<std::string> AssetManager::MergeAssetBundles(std::vector<std::string>& bundles, unsigned long long maxSize)
+std::vector<std::string> AssetManager::MergeAssetBundles(std::vector<std::string>& bundles, uint64_t maxSize)
 {
 	// TODO: IMPLEMENT
 	return std::vector<std::string>();

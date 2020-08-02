@@ -46,11 +46,11 @@ GLContext::~GLContext()
 	delete m_glSubmissionThread;
 }
 
-std::vector<GraphicsCommandBuffer *> GLContext::CreateGraphicsCommandBuffers(int count, bool graphics, bool compute, bool transfer)
+std::vector<GraphicsCommandBuffer *> GLContext::CreateGraphicsCommandBuffers(int32_t count, bool graphics, bool compute, bool transfer)
 {
 	std::vector<GraphicsCommandBuffer *> buffers;
 	buffers.reserve(count);
-	for (int i = 0; i < count; ++i)
+	for (int32_t i = 0; i < count; ++i)
 	{
 		buffers.push_back(new GLCmdBuffer(this));
 	}
@@ -86,21 +86,21 @@ GraphicsComputePipeline *GLContext::CreateComputePipeline(GraphicsComputePipelin
 	return p;
 }
 
-GraphicsMemoryBuffer *GLContext::CreateBuffer(unsigned long long byteSize, BufferUsageBit usage, GraphicsMemoryTypeBit mem)
+GraphicsMemoryBuffer *GLContext::CreateBuffer(uint64_t byteSize, BufferUsageBit usage, GraphicsMemoryTypeBit mem)
 {
 	GLBuffer *b = new GLBuffer(this, byteSize, mem);
 	m_queuedInitializers.push(b);
 	return b;
 }
 
-GraphicsImageObject *GLContext::CreateImage(ImageType type, VectorDataFormat format, glm::ivec3 size, int miplevels, ImageUsageBit usage)
+GraphicsImageObject *GLContext::CreateImage(ImageType type, VectorDataFormat format, glm::ivec3 size, int32_t miplevels, ImageUsageBit usage)
 {
 	GLImage *i = new GLImage(this, format, size, miplevels, usage, type);
 	m_queuedInitializers.push(i);
 	return i;
 }
 
-GraphicsRenderTarget *GLContext::CreateRenderTarget(std::vector<GraphicsImageView *>&& attachments, GraphicsImageView *depthStencil, GraphicsRenderPass *renderPass, int width, int height, int layers)
+GraphicsRenderTarget *GLContext::CreateRenderTarget(std::vector<GraphicsImageView *>&& attachments, GraphicsImageView *depthStencil, GraphicsRenderPass *renderPass, int32_t width, int32_t height, int32_t layers)
 {
 	GLRenderTarget *t = new GLRenderTarget(this, std::forward<std::vector<GraphicsImageView *>>(attachments), depthStencil, width, height, layers);
 	m_queuedInitializers.push(t);
@@ -132,11 +132,11 @@ GraphicsShader *GLContext::CreateShader(GraphicsSpecificShaderCode *code)
 	return s;
 }
 
-std::vector<GraphicsQuery *> GLContext::CreateQueries(int count, GraphicsQueryType type)
+std::vector<GraphicsQuery *> GLContext::CreateQueries(int32_t count, GraphicsQueryType type)
 {
 	std::vector<GraphicsQuery *> queries;
 	queries.reserve(count);
-	for (int i = 0; i < count; ++i)
+	for (int32_t i = 0; i < count; ++i)
 	{
 		GLQuery *q = new GLQuery(this, type);
 		m_queuedInitializers.push(q);
@@ -164,24 +164,28 @@ void GLContext::UpdateShaderImageSamplerResourceInstance(GraphicsShaderResourceI
 {
 	GLShaderResourceInstance *inst = dynamic_cast<GLShaderResourceInstance *>(instance);
 	inst->BindImageSamplers(imageViews, samplers);
+	EnqueueInitable(inst);
 }
 
 void GLContext::UpdateShaderImageInputAttachmentInstance(GraphicsShaderResourceInstance *instance, std::vector<GraphicsImageView *>&& imageViews)
 {
 	GLShaderResourceInstance *inst = dynamic_cast<GLShaderResourceInstance *>(instance);
 	inst->BindImages(imageViews);
+	EnqueueInitable(inst);
 }
 
 void GLContext::UpdateShaderImageLoadStoreResourceInstance(GraphicsShaderResourceInstance *instance, std::vector<GraphicsImageView *>&& imageViews)
 {
 	GLShaderResourceInstance *inst = dynamic_cast<GLShaderResourceInstance *>(instance);
 	inst->BindImages(imageViews);
+	EnqueueInitable(inst);
 }
 
-void GLContext::UpdateShaderBufferResourceInstance(GraphicsShaderResourceInstance *instance, GraphicsMemoryBuffer *buffer, int offset, int range)
+void GLContext::UpdateShaderBufferResourceInstance(GraphicsShaderResourceInstance *instance, GraphicsMemoryBuffer *buffer, int32_t offset, int32_t range)
 {
 	GLShaderResourceInstance *inst = dynamic_cast<GLShaderResourceInstance *>(instance);
 	inst->BindBuffer(buffer, offset, range);
+	EnqueueInitable(inst);
 }
 
 void GLContext::SubmitCommands(GraphicsCommandBuffer *commands, GraphicsQueueType queue)
@@ -210,7 +214,7 @@ void GLContext::EnqueueInitable(GLInitable *initable)
 	m_queuedInitializers.push(initable);
 }
 
-void GLContext::WaitUntilFramesFinishIfEqualTo(int bufferedFrames)
+void GLContext::WaitUntilFramesFinishIfEqualTo(int32_t bufferedFrames)
 {
 	if (m_framesInProgress >= bufferedFrames)
 		while (m_framesInProgress != 0);
@@ -265,7 +269,7 @@ void GLContext::RunContextThread()
 	GraphicsSyncObject *sync;
 	GLBuffer *map;
 
-	int statusInt = 0;
+	int32_t statusInt = 0;
 
 	std::function<void()> deleter;
 	std::vector<GraphicsSyncObject *> pushSyncs;
@@ -353,7 +357,7 @@ void GLContext::RunContextThread()
 			}
 			else
 			{
-				glGetSynciv(s->GetSync(), GL_SYNC_STATUS, sizeof(int), nullptr, &statusInt);
+				glGetSynciv(s->GetSync(), GL_SYNC_STATUS, sizeof(int32_t), nullptr, &statusInt);
 				if (statusInt == GL_SIGNALED)
 					s->Signal(true);
 				else
@@ -377,6 +381,34 @@ GraphicsCommandBuffer *GLContext::GetPoolCmdBuf()
 	if (!m_cmdPool.try_pop(buf))
 		buf = new GLCmdBuffer(this, true);
 	return buf;
+}
+
+GraphicsIdentity GLContext::GetIdentity()
+{
+	return GraphicsIdentity::OpenGL4_6;
+}
+
+bool GLContext::IsOpenGLTextureFlipYConvention()
+{
+	return true;
+}
+
+bool GLContext::IsOpenGLNDCConvention()
+{
+	return true;
+}
+
+int32_t GLContext::ConvertCubemapFaceToLayer(CubemapFace face)
+{
+	static std::unordered_map<CubemapFace, int32_t> faceToLayer = {
+		{ CubemapFace::Right, 0 },
+		{ CubemapFace::Left, 1 },
+		{ CubemapFace::Top, 2 },
+		{ CubemapFace::Bottom, 3 },
+		{ CubemapFace::Front, 4 },
+		{ CubemapFace::Back, 5 }
+	};
+	return faceToLayer[face];
 }
 
 void GLContext::SyncWithCommandSubmissionThread()

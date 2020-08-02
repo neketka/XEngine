@@ -1,7 +1,7 @@
 #include "pch.h"
 #include "ListAllocator.h"
 
-ListAllocator::ListAllocator(unsigned long long size, int maxAllocs)
+ListAllocator::ListAllocator(uint64_t size, int32_t maxAllocs)
 {
 	m_maxSize = size;
 	m_pointer = 0;
@@ -9,7 +9,7 @@ ListAllocator::ListAllocator(unsigned long long size, int maxAllocs)
 	m_freeSpace = size;
 
 	m_headerLinks.resize(maxAllocs);
-	for (int i = 0; i < maxAllocs; ++i)
+	for (int32_t i = 0; i < maxAllocs; ++i)
 		m_freeList.push(i);
 }
 
@@ -17,14 +17,14 @@ ListAllocator::~ListAllocator()
 {
 }
 
-ListMemoryPointer *ListAllocator::AllocateMemory(int size, int alignment)
+ListMemoryPointer *ListAllocator::AllocateMemory(int32_t size, int32_t alignment)
 {
-	std::lock_guard<std::mutex> lock0(m_allocLock);
-	//std::shared_lock<std::shared_mutex> lock1(m_defragLock);
+	std::lock_guard lock0(m_allocLock);
+	//std::shared_lock lock1(m_defragLock);
 
-	int alignmentPad = m_pointer % alignment;
-	unsigned long long thisPtr = m_pointer + alignmentPad;
-	unsigned long long newPtr = thisPtr + size;
+	int32_t alignmentPad = m_pointer % alignment;
+	uint64_t thisPtr = m_pointer + alignmentPad;
+	uint64_t newPtr = thisPtr + size;
 
 	if (newPtr >= m_maxSize)
 	{
@@ -36,7 +36,7 @@ ListMemoryPointer *ListAllocator::AllocateMemory(int size, int alignment)
 			return nullptr;
 	}
 
-	int index = 0;
+	int32_t index = 0;
 	if (!m_freeList.try_pop(index))
 		return nullptr;
 
@@ -89,18 +89,18 @@ void ListAllocator::DeallocateMemory(ListMemoryPointer *ptr)
 	m_defragLock.unlock_shared();
 }
 
-int ListAllocator::GetAllocationSize(ListMemoryPointer *ptr)
+int32_t ListAllocator::GetAllocationSize(ListMemoryPointer *ptr)
 {
 	ListEntryHeader *h = static_cast<ListEntryHeader *>(ptr);
 	return h->Size;
 }
 
-void ListAllocator::ShrinkToFit(int extraMemory)
+void ListAllocator::ShrinkToFit(int32_t extraMemory)
 {
-	m_maxSize = m_pointer + static_cast<unsigned long long>(extraMemory) + 1;
+	m_maxSize = m_pointer + static_cast<uint64_t>(extraMemory) + 1;
 }
 
-void ListAllocator::SetSize(unsigned long long maxSize)
+void ListAllocator::SetSize(uint64_t maxSize)
 {
 	m_maxSize = maxSize;
 }
@@ -125,12 +125,12 @@ void ListAllocator::UnpinMemoryUnmanaged(ListMemoryPointer *ptr)
 	h->Pinned = false;
 }
 
-int ListAllocator::GetMaxSize()
+int32_t ListAllocator::GetMaxSize()
 {
 	return m_maxSize;
 }
 
-int ListAllocator::GetFreeSpace()
+int32_t ListAllocator::GetFreeSpace()
 {
 	return m_freeSpace;
 }
@@ -155,7 +155,7 @@ void ListAllocator::Defragment()
 	m_defragLock.lock();
 	m_defragBegin();
 
-	unsigned long long pointer = 0;
+	uint64_t pointer = 0;
 
 	MoveData mv;
 	for (ListEntryHeader *h = m_first; h->Next != nullptr; h = h->Next)
@@ -168,9 +168,9 @@ void ListAllocator::Defragment()
 		mv.SrcIndex = h->Pointer;
 		mv.Size = h->Size;
 
-		int alignmentPad = pointer % h->Alignment;
-		unsigned long long thisPtr = pointer + alignmentPad;
-		unsigned long long newPtr = thisPtr + h->Size;
+		int32_t alignmentPad = pointer % h->Alignment;
+		uint64_t thisPtr = pointer + alignmentPad;
+		uint64_t newPtr = thisPtr + h->Size;
 
 		h->Pointer = thisPtr;
 		h->Padding = alignmentPad;

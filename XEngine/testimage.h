@@ -1,7 +1,7 @@
 /*  GIMP header image file format (RGB): D:\Nikita\Documents\testi.h  */
 
-static unsigned int testwidth = 35;
-static unsigned int testheight = 32;
+static uint32_t testwidth = 35;
+static uint32_t testheight = 32;
 
 /*  Call this macro repeatedly.  After each use, the pixel data can be extracted  */
 

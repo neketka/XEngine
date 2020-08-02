@@ -78,7 +78,7 @@ void GLCmdBuffer::BindRenderPass(GraphicsRenderTarget *target, GraphicsRenderPas
 void GLCmdBuffer::NextSubpass()
 {
 	GLRenderPass *rp = m_lastPass;
-	int subpass = ++m_subpassIndexCounter;
+	int32_t subpass = ++m_subpassIndexCounter;
 	m_commands.push_back([rp, subpass]()
 		{
 			rp->BindSubpass(subpass);
@@ -110,11 +110,11 @@ void GLCmdBuffer::WriteTimestamp(GraphicsQuery *query)
 {
 }
 
-void GLCmdBuffer::WriteQueryToBuffer(GraphicsQuery *query, int bufferOffset)
+void GLCmdBuffer::WriteQueryToBuffer(GraphicsQuery *query, int32_t bufferOffset)
 {
 }
 
-void GLCmdBuffer::BindVertexBuffers(int firstBinding, std::vector<GraphicsMemoryBuffer *> buffers, std::vector<int> offsets)
+void GLCmdBuffer::BindVertexBuffers(int32_t firstBinding, std::vector<GraphicsMemoryBuffer *> buffers, std::vector<int32_t> offsets)
 {
 	std::vector<GLuint> ids(buffers.size());
 	std::vector<GLsizei> strides(buffers.size());
@@ -122,7 +122,7 @@ void GLCmdBuffer::BindVertexBuffers(int firstBinding, std::vector<GraphicsMemory
 
 	GLPipeline *p = m_lastRenderPipe;
 
-	for (int i = 0; i < buffers.size(); ++i)
+	for (int32_t i = 0; i < buffers.size(); ++i)
 	{
 		ids[i] = dynamic_cast<GLBuffer *>(buffers[i])->GetBufferId();
 		strides[i] = p->GetBindingStride(firstBinding + i);
@@ -146,7 +146,7 @@ void GLCmdBuffer::BindIndexBuffer(GraphicsMemoryBuffer *buffer, bool dataType16b
 	m_ibo16Bit = dataType16bit;
 }
 
-void GLCmdBuffer::PushShaderConstants(GraphicsShaderDataSet *set, int constantIndex, int constantOffset, int constantCount, void *data)
+void GLCmdBuffer::PushShaderConstants(GraphicsShaderDataSet *set, int32_t constantIndex, int32_t constantOffset, int32_t constantCount, void *data)
 {
 	m_lastRenderPipe->WaitInit();
 	GLShaderDataSet *sds = dynamic_cast<GLShaderDataSet *>(set);
@@ -190,15 +190,27 @@ void GLCmdBuffer::PushShaderConstants(GraphicsShaderDataSet *set, int constantIn
 	}
 	else
 	{
-		decltype(glProgramUniform1iv) func = sdata.VectorLength == 1 ? glProgramUniform1iv : sdata.VectorLength == 2 ? 
-			glProgramUniform2iv : sdata.VectorLength == 3 ? glProgramUniform3iv : glProgramUniform4iv;
-		for (GLuint prog : progs)
-			m_commands.push_back(std::bind(func, prog, sdata.Offset + constantOffset, constantCount, reinterpret_cast<int *>(cmdBufStore)));
+		if (sdata.Unsigned)
+		{
+			decltype(glProgramUniform1uiv) func = sdata.VectorLength == 1 ? glProgramUniform1uiv : sdata.VectorLength == 2 ?
+				glProgramUniform2uiv : sdata.VectorLength == 3 ? glProgramUniform3uiv : glProgramUniform4uiv;
+			for (GLuint prog : progs)
+				m_commands.push_back(std::bind(func, prog, sdata.Offset + constantOffset, constantCount, reinterpret_cast<uint32_t *>(cmdBufStore)));
+		}
+		else
+		{
+			decltype(glProgramUniform1iv) func = sdata.VectorLength == 1 ? glProgramUniform1iv : sdata.VectorLength == 2 ?
+				glProgramUniform2iv : sdata.VectorLength == 3 ? glProgramUniform3iv : glProgramUniform4iv;
+			for (GLuint prog : progs)
+				m_commands.push_back(std::bind(func, prog, sdata.Offset + constantOffset, constantCount, reinterpret_cast<int32_t *>(cmdBufStore)));
+		}
 	}
 }
 
-void GLCmdBuffer::BindRenderShaderResourceInstance(GraphicsShaderDataSet *set, GraphicsShaderResourceInstance *instance, int viewIndex, int offset)
+void GLCmdBuffer::BindRenderShaderResourceInstance(GraphicsShaderDataSet *set, GraphicsShaderResourceInstance *instance, int32_t viewIndex, int32_t offset)
 {
+	if (m_lastRenderPipe)
+		m_lastRenderPipe->WaitInit();
 	GLShaderDataSet *ds = dynamic_cast<GLShaderDataSet *>(set);
 	GLShaderResourceInstance *ri = dynamic_cast<GLShaderResourceInstance *>(instance);
 
@@ -219,8 +231,8 @@ void GLCmdBuffer::BindRenderShaderResourceInstance(GraphicsShaderDataSet *set, G
 	if (data.Stages & ShaderStageBit::Vertex)
 		progs.push_back(m_lastRenderPipe->GetStage(ShaderStageBit::Vertex));
 
-	int minTUnit = m_minTextureUnit;
-	int minIUnit = m_minImageUnit;
+	int32_t minTUnit = m_minTextureUnit;
+	int32_t minIUnit = m_minImageUnit;
 
 	switch (data.Type)
 	{
@@ -232,7 +244,7 @@ void GLCmdBuffer::BindRenderShaderResourceInstance(GraphicsShaderDataSet *set, G
 			m_commands.push_back([data, prog, ri, minTUnit]() {
 				glBindSamplers(minTUnit, data.Count, ri->GetSamplerIds().data());
 				glBindTextures(minTUnit, data.Count, ri->GetViewIds().data());
-				for (int i = 0; i < data.Count; ++i)
+				for (int32_t i = 0; i < data.Count; ++i)
 					glProgramUniform1i(prog, data.Binding + i, i + minTUnit);
 				});
 		}
@@ -243,7 +255,7 @@ void GLCmdBuffer::BindRenderShaderResourceInstance(GraphicsShaderDataSet *set, G
 			minIUnit += data.Count;
 			m_commands.push_back([data, prog, ri, minIUnit]() {
 				glBindImageTextures(minIUnit, data.Count, ri->GetViewIds().data());
-				for (int i = 0; i < data.Count; ++i)
+				for (int32_t i = 0; i < data.Count; ++i)
 					glProgramUniform1i(prog, data.Binding + i, i + minIUnit);
 				});
 		}
@@ -275,12 +287,13 @@ void GLCmdBuffer::BindRenderShaderResourceInstance(GraphicsShaderDataSet *set, G
 	}
 }
 
-void GLCmdBuffer::BindComputeShaderResourceInstance(GraphicsShaderDataSet *set, GraphicsShaderResourceInstance *instance, int viewIndex, int offset)
+void GLCmdBuffer::BindComputeShaderResourceInstance(GraphicsShaderDataSet *set, GraphicsShaderResourceInstance *instance, int32_t viewIndex, int32_t offset)
 {
+	m_lastComputePipe->WaitInit();
 	BindRenderShaderResourceInstance(set, instance, viewIndex, offset);
 }
 
-void GLCmdBuffer::DrawIndexed(int vertexCount, int instances, int firstIndex, int vertexOffset, int firstInstance)
+void GLCmdBuffer::DrawIndexed(int32_t vertexCount, int32_t instances, int32_t firstIndex, int32_t vertexOffset, int32_t firstInstance)
 {
 	GLenum indexType = m_ibo16Bit ? GL_UNSIGNED_SHORT : GL_UNSIGNED_INT;
 	GLenum topology = m_lastRenderPipe->GetTopology() == GraphicsPrimitiveType::Triangles ? GL_TRIANGLES :
@@ -290,7 +303,7 @@ void GLCmdBuffer::DrawIndexed(int vertexCount, int instances, int firstIndex, in
 	m_commands.push_back(std::bind(glDrawElementsInstancedBaseVertexBaseInstance, topology, vertexCount, indexType, reinterpret_cast<void *>(firstIndex), instances, vertexOffset, firstInstance));
 }
 
-void GLCmdBuffer::Draw(int vertexCount, int instanceCount, int firstVertex, int firstInstance)
+void GLCmdBuffer::Draw(int32_t vertexCount, int32_t instanceCount, int32_t firstVertex, int32_t firstInstance)
 {
 	GLenum topology = m_lastRenderPipe->GetTopology() == GraphicsPrimitiveType::Triangles ? GL_TRIANGLES :
 		m_lastRenderPipe->GetTopology() == GraphicsPrimitiveType::Lines ? GL_LINES :
@@ -298,7 +311,7 @@ void GLCmdBuffer::Draw(int vertexCount, int instanceCount, int firstVertex, int 
 	m_commands.push_back(std::bind(glDrawArraysInstancedBaseInstance, topology, firstVertex, vertexCount, instanceCount, firstInstance));
 }
 
-void GLCmdBuffer::DrawIndirect(GraphicsMemoryBuffer *buffer, int offset, int drawCount, int stride)
+void GLCmdBuffer::DrawIndirect(GraphicsMemoryBuffer *buffer, int32_t offset, int32_t drawCount, int32_t stride)
 {
 	GLenum topology = m_lastRenderPipe->GetTopology() == GraphicsPrimitiveType::Triangles ? GL_TRIANGLES :
 		m_lastRenderPipe->GetTopology() == GraphicsPrimitiveType::Lines ? GL_LINES :
@@ -309,7 +322,7 @@ void GLCmdBuffer::DrawIndirect(GraphicsMemoryBuffer *buffer, int offset, int dra
 		});
 }
 
-void GLCmdBuffer::DrawIndirectIndexed(GraphicsMemoryBuffer *buffer, int offset, int drawCount, int stride)
+void GLCmdBuffer::DrawIndirectIndexed(GraphicsMemoryBuffer *buffer, int32_t offset, int32_t drawCount, int32_t stride)
 {
 	GLenum indexType = m_ibo16Bit ? GL_UNSIGNED_SHORT : GL_UNSIGNED_INT;
 	GLenum topology = m_lastRenderPipe->GetTopology() == GraphicsPrimitiveType::Triangles ? GL_TRIANGLES :
@@ -322,7 +335,7 @@ void GLCmdBuffer::DrawIndirectIndexed(GraphicsMemoryBuffer *buffer, int offset, 
 		});
 }
 
-void GLCmdBuffer::DrawIndirectCount(GraphicsMemoryBuffer *buffer, int offset, GraphicsMemoryBuffer *drawCountBuffer, int drawCountBufferOffset, int maxDrawCount, int stride)
+void GLCmdBuffer::DrawIndirectCount(GraphicsMemoryBuffer *buffer, int32_t offset, GraphicsMemoryBuffer *drawCountBuffer, int32_t drawCountBufferOffset, int32_t maxDrawCount, int32_t stride)
 {
 	GLenum topology = m_lastRenderPipe->GetTopology() == GraphicsPrimitiveType::Triangles ? GL_TRIANGLES :
 		m_lastRenderPipe->GetTopology() == GraphicsPrimitiveType::Lines ? GL_LINES :
@@ -335,7 +348,7 @@ void GLCmdBuffer::DrawIndirectCount(GraphicsMemoryBuffer *buffer, int offset, Gr
 		});
 }
 
-void GLCmdBuffer::DrawIndirectIndexedCount(GraphicsMemoryBuffer *buffer, int offset, GraphicsMemoryBuffer *drawCountBuffer, int drawCountBufferOffset, int maxDrawCount, int stride)
+void GLCmdBuffer::DrawIndirectIndexedCount(GraphicsMemoryBuffer *buffer, int32_t offset, GraphicsMemoryBuffer *drawCountBuffer, int32_t drawCountBufferOffset, int32_t maxDrawCount, int32_t stride)
 {
 	GLenum indexType = m_ibo16Bit ? GL_UNSIGNED_SHORT : GL_UNSIGNED_INT;
 	GLenum topology = m_lastRenderPipe->GetTopology() == GraphicsPrimitiveType::Triangles ? GL_TRIANGLES :
@@ -348,12 +361,12 @@ void GLCmdBuffer::DrawIndirectIndexedCount(GraphicsMemoryBuffer *buffer, int off
 		});
 }
 
-void GLCmdBuffer::DispatchCompute(int x, int y, int z)
+void GLCmdBuffer::DispatchCompute(int32_t x, int32_t y, int32_t z)
 {
 	m_commands.push_back(std::bind(glDispatchCompute, x, y, z));
 }
 
-void GLCmdBuffer::DispatchIndirect(GraphicsMemoryBuffer *buffer, int offset)
+void GLCmdBuffer::DispatchIndirect(GraphicsMemoryBuffer *buffer, int32_t offset)
 {
 	m_commands.push_back([buffer, offset]() {
 		glBindBuffer(GL_DISPATCH_INDIRECT_BUFFER, dynamic_cast<GLBuffer *>(buffer)->GetBufferId());
@@ -376,7 +389,7 @@ void GLCmdBuffer::UpdatePipelineDynamicLineWidth(float lineWidth)
 	m_commands.push_back(std::bind(glLineWidth, lineWidth));
 }
 
-void GLCmdBuffer::UpdatePipelineDynamicStencilFrontFaceCompareMask(unsigned int mask)
+void GLCmdBuffer::UpdatePipelineDynamicStencilFrontFaceCompareMask(uint32_t mask)
 {
 	GLenum func = compModeB[m_lastRenderPipe->GetState().DepthStencilState.StencilFront.CompareOperation];
 	m_frontCompMask = mask;
@@ -384,12 +397,12 @@ void GLCmdBuffer::UpdatePipelineDynamicStencilFrontFaceCompareMask(unsigned int 
 	m_commands.push_back(std::bind(glStencilFuncSeparate, GL_FRONT, func, m_frontRefMask, mask));
 }
 
-void GLCmdBuffer::UpdatePipelineDynamicStencilFrontFaceWriteMask(unsigned int mask)
+void GLCmdBuffer::UpdatePipelineDynamicStencilFrontFaceWriteMask(uint32_t mask)
 {
 	m_commands.push_back(std::bind(glStencilMaskSeparate, GL_FRONT, mask));
 }
 
-void GLCmdBuffer::UpdatePipelineDynamicStencilFrontFaceReference(unsigned int mask)
+void GLCmdBuffer::UpdatePipelineDynamicStencilFrontFaceReference(uint32_t mask)
 {
 	GLenum func = compModeB[m_lastRenderPipe->GetState().DepthStencilState.StencilFront.CompareOperation];
 	m_frontRefMask = mask;
@@ -397,7 +410,7 @@ void GLCmdBuffer::UpdatePipelineDynamicStencilFrontFaceReference(unsigned int ma
 	m_commands.push_back(std::bind(glStencilFuncSeparate, GL_FRONT, func, mask, m_frontCompMask));
 }
 
-void GLCmdBuffer::UpdatePipelineDynamicStencilBackFaceCompareMask(unsigned int mask)
+void GLCmdBuffer::UpdatePipelineDynamicStencilBackFaceCompareMask(uint32_t mask)
 {
 	GLenum func = compModeB[m_lastRenderPipe->GetState().DepthStencilState.StencilBack.CompareOperation];
 	m_backCompMask = mask;
@@ -405,12 +418,12 @@ void GLCmdBuffer::UpdatePipelineDynamicStencilBackFaceCompareMask(unsigned int m
 	m_commands.push_back(std::bind(glStencilFuncSeparate, GL_BACK, func, m_backRefMask, mask));
 }
 
-void GLCmdBuffer::UpdatePipelineDynamicStencilBackFaceWriteMask(unsigned int mask)
+void GLCmdBuffer::UpdatePipelineDynamicStencilBackFaceWriteMask(uint32_t mask)
 {
 	m_commands.push_back(std::bind(glStencilMaskSeparate, GL_BACK, mask));
 }
 
-void GLCmdBuffer::UpdatePipelineDynamicStencilBackFaceReference(unsigned int mask)
+void GLCmdBuffer::UpdatePipelineDynamicStencilBackFaceReference(uint32_t mask)
 {
 	GLenum func = compModeB[m_lastRenderPipe->GetState().DepthStencilState.StencilBack.CompareOperation];
 	m_backRefMask = mask;
@@ -492,13 +505,13 @@ void GLCmdBuffer::SynchronizeMemory(MemoryBarrierBit from, MemoryBarrierBit to, 
 	}
 }
 
-void GLCmdBuffer::ClearColor(GraphicsImageObject *image, glm::vec4 color, int level, int layer)
+void GLCmdBuffer::ClearColor(GraphicsImageObject *image, glm::vec4 color, int32_t level, int32_t layer)
 {
 	GLImage *i = dynamic_cast<GLImage *>(image);
 	VectorFormatDesc desc = GetFormatDesc(i->GetVectorFormat());
-	int dataSize = (desc.RBits > 0 ? 1 : 0) + (desc.GBits > 0 ? 1 : 0) + (desc.BBits > 0 ? 1 : 0) + (desc.ABits > 0 ? 1 : 0);
+	int32_t dataSize = (desc.RBits > 0 ? 1 : 0) + (desc.GBits > 0 ? 1 : 0) + (desc.BBits > 0 ? 1 : 0) + (desc.ABits > 0 ? 1 : 0);
 	GLenum format = dataSize == 1 ? GL_R : dataSize == 2 ? GL_RG : dataSize == 3 ? GL_RGB : GL_RGBA;
-	int depth = layer == -1 ? i->GetSize().z : 1;
+	int32_t depth = layer == -1 ? i->GetSize().z : 1;
 	m_commands.push_back([i, color, level, layer, dataSize, format, depth]() {
 		glClearTexSubImage(i->GetImageId(), level, 0, 0, layer, i->GetSize().x, i->GetSize().y, depth, format, GL_FLOAT, &color.r);
 		});
@@ -516,7 +529,7 @@ void GLCmdBuffer::ClearDepthStencil(GraphicsImageObject *image, float depth, cha
 	}
 	else if (desc.GBits > 0)
 	{
-		unsigned int f[] = { *reinterpret_cast<unsigned int *>(&depth), stencil >> 24 };
+		uint32_t f[] = { *reinterpret_cast<uint32_t *>(&depth), stencil >> 24 };
 		m_commands.push_back([i, f]() {
 			glClearTexSubImage(i->GetImageId(), 0, 0, 0, 0, i->GetSize().x, i->GetSize().y, 1, GL_DEPTH_STENCIL, GL_FLOAT_32_UNSIGNED_INT_24_8_REV, f);
 			});
@@ -529,21 +542,21 @@ void GLCmdBuffer::ClearDepthStencil(GraphicsImageObject *image, float depth, cha
 	}
 }
 
-void GLCmdBuffer::ClearAttachmentsColor(int index, glm::vec4 color)
+void GLCmdBuffer::ClearAttachmentsColor(int32_t index, glm::vec4 color)
 {
 	m_commands.push_back([index, color]() {
 		glClearBufferfv(GL_COLOR, index, &color.x);
 		});
 }
 
-void GLCmdBuffer::ClearAttachmentsDepthStencil(int index, float depth, char stencil)
+void GLCmdBuffer::ClearAttachmentsDepthStencil(int32_t index, float depth, char stencil)
 {
 	m_commands.push_back([index, depth, stencil]() {
 		glClearBufferfi(GL_DEPTH_STENCIL, 0, depth, stencil);
 		});
 }
 
-void GLCmdBuffer::UpdateBufferData(GraphicsMemoryBuffer *buffer, int offset, int size, void *data)
+void GLCmdBuffer::UpdateBufferData(GraphicsMemoryBuffer *buffer, int32_t offset, int32_t size, void *data)
 {
 	void *copied = std::malloc(size);
 	std::memcpy(copied, data, size);
@@ -624,7 +637,7 @@ void GLCmdBuffer::CopyImageToBuffer(GraphicsImageObject *srcImage, GraphicsMemor
 	GLenum type = (desc.Depth && desc.Stencil) ? (desc.Integer ? (desc.Unsigned ? (desc.RBits == 8 ? GL_UNSIGNED_BYTE : (desc.RBits == 16 ? GL_UNSIGNED_SHORT : GL_UNSIGNED_INT)) :
 		desc.RBits == 8 ? GL_BYTE : (desc.RBits == 16 ? GL_SHORT : GL_INT)) : GL_FLOAT) : (desc.RBits == 24 ? GL_UNSIGNED_INT_24_8 : GL_FLOAT_32_UNSIGNED_INT_24_8_REV);
 
-	int size = (desc.RBits + desc.GBits + desc.BBits + desc.ABits) / 4;
+	int32_t size = (desc.RBits + desc.GBits + desc.BBits + desc.ABits) / 4;
 
 	m_commands.push_back([src, dest, regions, format, type]()
 		{
@@ -640,7 +653,7 @@ void GLCmdBuffer::CopyImageToBuffer(GraphicsImageObject *srcImage, GraphicsMemor
 }
 
 void GLCmdBuffer::CopyImageToImage(GraphicsImageObject *srcImage, GraphicsImageObject *destImage, glm::ivec3 srcOffset, glm::ivec3 destOffset, glm::ivec3 size, 
-	int srcLevel, int destLevel, int layers, bool color, bool depth, bool stencil)
+	int32_t srcLevel, int32_t destLevel, int32_t layers, bool color, bool depth, bool stencil)
 {
 	GLImage *src = dynamic_cast<GLImage *>(srcImage);
 	GLImage *dest = dynamic_cast<GLImage *>(destImage); 
@@ -652,7 +665,7 @@ void GLCmdBuffer::CopyImageToImage(GraphicsImageObject *srcImage, GraphicsImageO
 
 }
 
-void GLCmdBuffer::CopyBufferToBuffer(GraphicsMemoryBuffer *src, GraphicsMemoryBuffer *dest, unsigned long long srcOffset, unsigned long long destOffset, int size)
+void GLCmdBuffer::CopyBufferToBuffer(GraphicsMemoryBuffer *src, GraphicsMemoryBuffer *dest, uint64_t srcOffset, uint64_t destOffset, int32_t size)
 {
 	GLBuffer *s = dynamic_cast<GLBuffer *>(src);
 	GLBuffer *d = dynamic_cast<GLBuffer *>(dest);

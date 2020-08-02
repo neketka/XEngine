@@ -24,7 +24,7 @@ public:
 
 	virtual std::string GetName() = 0;
 
-	virtual int GetMaxPostThreadCount() { return 0; }
+	virtual int32_t GetMaxPostThreadCount() { return 0; }
 	virtual bool IsPostMainThread() { return false; }
 
 	virtual std::vector<std::string> GetSystemsBefore() { return {}; }
@@ -36,7 +36,7 @@ public:
 	virtual void BeforeEntityUpdate(float deltaTime) {}
 	virtual void Update(float deltaTime, ComponentDataIterator& data) { }
 	virtual void AfterEntityUpdate(float deltaTime) {}
-	virtual void PostUpdate(float deltaTime, int threadIndex) { }
+	virtual void PostUpdate(float deltaTime, int32_t threadIndex) { }
 	virtual void Dispose(ComponentDataIterator& data) { }
 
 	inline bool IsEnabled() { return m_enabled; }
@@ -78,7 +78,7 @@ public:
 
 	XENGINEAPI void InitializeSystemOrdering(); // Run when the scene's collection of systems changes
 	XENGINEAPI void ScheduleJobs(); // Run every frame from one thread
-	XENGINEAPI void ExecuteJobs(int threadIndex, float deltaTime); // Run from every thread
+	XENGINEAPI void ExecuteJobs(int32_t threadIndex, float deltaTime); // Run from every thread
 private:
 	std::vector<ISystem *> m_mainThreadSystems; // PostUpdate to be run only from main thread
 	std::vector<ISystem *> m_nonMainThreadSystems;

@@ -10,6 +10,10 @@ public:
 	virtual ~DisposableHandle() = 0;
 };
 
+enum class GraphicsIdentity
+{
+	OpenGL4_6, Vulkan1_2
+};
 
 using GraphicsSpecificSpecializationData = DisposableHandle;
 using GraphicsSpecificShaderCode = DisposableHandle;
@@ -38,7 +42,7 @@ class GraphicsSyncObject
 {
 public:
 	virtual ~GraphicsSyncObject() = 0;
-	virtual bool Wait(unsigned long long nanoSecTimeout) = 0;
+	virtual bool Wait(uint64_t nanoSecTimeout) = 0;
 	virtual void Reset() = 0;
 	virtual bool GetCurrentStatus() = 0;
 };
@@ -47,7 +51,7 @@ class GraphicsImageObject
 {
 public:
 	virtual ~GraphicsImageObject() = 0;
-	virtual GraphicsImageView *CreateView(ImageType type, VectorDataFormat format, int baseLevel, int levels, int baseLayer, int layers,
+	virtual GraphicsImageView *CreateView(ImageType type, VectorDataFormat format, int32_t baseLevel, int32_t levels, int32_t baseLayer, int32_t layers,
 		ImageSwizzleComponent redSwizzle, ImageSwizzleComponent greenSizzle, ImageSwizzleComponent blueSwizzle,
 		ImageSwizzleComponent alphaSwizzle) = 0;
 };
@@ -56,20 +60,21 @@ class GraphicsShaderConstantData
 {
 public:
 	ShaderStageBit Stages;
-	int Offset;
-	int ElementCount;
+	int32_t Offset;
+	int32_t ElementCount;
 	bool Float;
 	bool Matrix;
-	int VectorLength;
+	bool Unsigned;
+	int32_t VectorLength;
 };
 
 class GraphicsShaderResourceViewData
 {
 public:
 	ShaderStageBit Stages;
-	int Binding;
+	int32_t Binding;
 	ShaderResourceType Type;
-	int Count;
+	int32_t Count;
 };
 
 class GraphicsSamplerState
@@ -97,11 +102,11 @@ class GraphicsMemoryBuffer
 {
 public:
 	virtual ~GraphicsMemoryBuffer() = 0;
-	virtual void MapBuffer(unsigned long long offset, int length, bool coherent, bool writeOnly) = 0;
+	virtual void MapBuffer(uint64_t offset, int32_t length, bool coherent, bool writeOnly) = 0;
 	virtual void UnmapBuffer() = 0;
 	virtual void *GetMappedPointer() = 0;
-	virtual void FlushMapped(unsigned long long offset, int size) = 0;
-	virtual void InvalidateMapped(unsigned long long offset, int size) = 0;
+	virtual void FlushMapped(uint64_t offset, int32_t size) = 0;
+	virtual void InvalidateMapped(uint64_t offset, int32_t size) = 0;
 };
 
 class GraphicsShaderState
@@ -114,8 +119,8 @@ public:
 class GraphicsRenderSubpassState
 {
 public:
-	std::vector<int> InputAttachments;
-	std::vector<int> ColorAttachments;
+	std::vector<int32_t> InputAttachments;
+	std::vector<int32_t> ColorAttachments;
 };
 
 class GraphicsRenderPassState
@@ -132,18 +137,18 @@ public:
 class GraphicsRenderVertexBufferInputData
 {
 public:
-	int BufferBinding;
-	int Stride;
+	int32_t BufferBinding;
+	int32_t Stride;
 	bool Instanced;
 };
 
 class GraphicsRenderVertexAttributeData
 {
 public:
-	int ShaderAttributeLocation;
-	int BufferBinding;
+	int32_t ShaderAttributeLocation;
+	int32_t BufferBinding;
 	VectorDataFormat Format;
-	int InElementOffset;
+	int32_t InElementOffset;
 };
 
 class GraphicsRenderVertexInputState
@@ -159,7 +164,7 @@ class GraphicsRenderTessellationState
 {
 public:
 	bool EnableState;
-	int PatchControlPoints;
+	int32_t PatchControlPoints;
 };
 
 class GraphicsRenderViewportState
@@ -193,9 +198,9 @@ public:
 	StencilOperation Pass;
 	StencilOperation DepthFail;
 	ComparisonMode CompareOperation;
-	unsigned int CompareMask;
-	unsigned int WriteMask;
-	unsigned int Reference;
+	uint32_t CompareMask;
+	uint32_t WriteMask;
+	uint32_t Reference;
 	bool DynamicCompareMask;
 	bool DynamicWriteMask;
 	bool DynamicReference;
@@ -261,10 +266,10 @@ class GraphicsBufferImageCopyRegion
 public:
 	glm::ivec3 Offset; 
 	glm::ivec3 Size;
-	int Level;
-	int BufferOffset; 
-	int BufferRowLength; 
-	int BufferImageHeight;
+	int32_t Level;
+	int32_t BufferOffset; 
+	int32_t BufferRowLength; 
+	int32_t BufferImageHeight;
 };
 
 class GraphicsCommandBuffer : public DisposableHandle
@@ -281,33 +286,33 @@ public:
 	virtual void EndQuery(GraphicsQuery *query) = 0;
 	virtual void ResetQuery(GraphicsQuery *query) = 0;
 	virtual void WriteTimestamp(GraphicsQuery *query) = 0;
-	virtual void WriteQueryToBuffer(GraphicsQuery *query, int bufferOffset) = 0;
+	virtual void WriteQueryToBuffer(GraphicsQuery *query, int32_t bufferOffset) = 0;
 
-	virtual void BindVertexBuffers(int firstBinding, std::vector<GraphicsMemoryBuffer *> buffers, std::vector<int> offsets) = 0;
+	virtual void BindVertexBuffers(int32_t firstBinding, std::vector<GraphicsMemoryBuffer *> buffers, std::vector<int32_t> offsets) = 0;
 	virtual void BindIndexBuffer(GraphicsMemoryBuffer *buffer, bool dataType16bit) = 0;
 
-	virtual void PushShaderConstants(GraphicsShaderDataSet *set, int constantIndex, int constantOffset, int constantCount, void *data) = 0;
-	virtual void BindRenderShaderResourceInstance(GraphicsShaderDataSet *set, GraphicsShaderResourceInstance *instance, int viewIndex, int offset) = 0;
-	virtual void BindComputeShaderResourceInstance(GraphicsShaderDataSet *set, GraphicsShaderResourceInstance *instance, int viewIndex, int offset) = 0;
+	virtual void PushShaderConstants(GraphicsShaderDataSet *set, int32_t constantIndex, int32_t constantOffset, int32_t constantCount, void *data) = 0;
+	virtual void BindRenderShaderResourceInstance(GraphicsShaderDataSet *set, GraphicsShaderResourceInstance *instance, int32_t viewIndex, int32_t offset) = 0;
+	virtual void BindComputeShaderResourceInstance(GraphicsShaderDataSet *set, GraphicsShaderResourceInstance *instance, int32_t viewIndex, int32_t offset) = 0;
 
-	virtual void DrawIndexed(int vertexCount, int instances, int firstIndex, int vertexOffset, int firstInstance) = 0;
-	virtual void Draw(int vertexCount, int instanceCount, int firstVertex, int firstInstance) = 0;
-	virtual void DrawIndirect(GraphicsMemoryBuffer *buffer, int offset, int drawCount, int stride) = 0;
-	virtual void DrawIndirectIndexed(GraphicsMemoryBuffer *buffer, int offset, int drawCount, int stride) = 0;
-	virtual void DrawIndirectCount(GraphicsMemoryBuffer *buffer, int offset, GraphicsMemoryBuffer *drawCountBuffer, int drawCountBufferOffset, int maxDrawCount, int stride) = 0;
-	virtual void DrawIndirectIndexedCount(GraphicsMemoryBuffer *buffer, int offset, GraphicsMemoryBuffer *drawCountBuffer, int drawCountBufferOffset, int maxDrawCount, int stride) = 0;
-	virtual void DispatchCompute(int x, int y, int z) = 0;
-	virtual void DispatchIndirect(GraphicsMemoryBuffer *buffer, int offset) = 0;
+	virtual void DrawIndexed(int32_t vertexCount, int32_t instances, int32_t firstIndex, int32_t vertexOffset, int32_t firstInstance) = 0;
+	virtual void Draw(int32_t vertexCount, int32_t instanceCount, int32_t firstVertex, int32_t firstInstance) = 0;
+	virtual void DrawIndirect(GraphicsMemoryBuffer *buffer, int32_t offset, int32_t drawCount, int32_t stride) = 0;
+	virtual void DrawIndirectIndexed(GraphicsMemoryBuffer *buffer, int32_t offset, int32_t drawCount, int32_t stride) = 0;
+	virtual void DrawIndirectCount(GraphicsMemoryBuffer *buffer, int32_t offset, GraphicsMemoryBuffer *drawCountBuffer, int32_t drawCountBufferOffset, int32_t maxDrawCount, int32_t stride) = 0;
+	virtual void DrawIndirectIndexedCount(GraphicsMemoryBuffer *buffer, int32_t offset, GraphicsMemoryBuffer *drawCountBuffer, int32_t drawCountBufferOffset, int32_t maxDrawCount, int32_t stride) = 0;
+	virtual void DispatchCompute(int32_t x, int32_t y, int32_t z) = 0;
+	virtual void DispatchIndirect(GraphicsMemoryBuffer *buffer, int32_t offset) = 0;
 
 	virtual void UpdatePipelineDynamicViewport(glm::vec4 dimensions) = 0;
 	virtual void UpdatePipelineDynamicScissorBox(glm::vec4 dimensions) = 0;
 	virtual void UpdatePipelineDynamicLineWidth(float lineWidth) = 0;
-	virtual void UpdatePipelineDynamicStencilFrontFaceCompareMask(unsigned int mask) = 0;
-	virtual void UpdatePipelineDynamicStencilFrontFaceWriteMask(unsigned int mask) = 0;
-	virtual void UpdatePipelineDynamicStencilFrontFaceReference(unsigned int mask) = 0;
-	virtual void UpdatePipelineDynamicStencilBackFaceCompareMask(unsigned int mask) = 0;
-	virtual void UpdatePipelineDynamicStencilBackFaceWriteMask(unsigned int mask) = 0;
-	virtual void UpdatePipelineDynamicStencilBackFaceReference(unsigned int mask) = 0;
+	virtual void UpdatePipelineDynamicStencilFrontFaceCompareMask(uint32_t mask) = 0;
+	virtual void UpdatePipelineDynamicStencilFrontFaceWriteMask(uint32_t mask) = 0;
+	virtual void UpdatePipelineDynamicStencilFrontFaceReference(uint32_t mask) = 0;
+	virtual void UpdatePipelineDynamicStencilBackFaceCompareMask(uint32_t mask) = 0;
+	virtual void UpdatePipelineDynamicStencilBackFaceWriteMask(uint32_t mask) = 0;
+	virtual void UpdatePipelineDynamicStencilBackFaceReference(uint32_t mask) = 0;
 	virtual void UpdatePipelineDynamicBlendConstant(glm::vec4 constants) = 0;
 
 	virtual void WaitOnFence(GraphicsSyncObject *sync) = 0;
@@ -316,20 +321,20 @@ public:
 
 	virtual void SynchronizeMemory(MemoryBarrierBit from, MemoryBarrierBit to, bool byRegion) = 0;
 
-	virtual void ClearColor(GraphicsImageObject *image, glm::vec4 color, int level, int layer) = 0;
+	virtual void ClearColor(GraphicsImageObject *image, glm::vec4 color, int32_t level, int32_t layer) = 0;
 	virtual void ClearDepthStencil(GraphicsImageObject *image, float depth, char stencil) = 0;
 
-	virtual void ClearAttachmentsColor(int index, glm::vec4 color) = 0;
-	virtual void ClearAttachmentsDepthStencil(int index, float depth, char stencil) = 0;
+	virtual void ClearAttachmentsColor(int32_t index, glm::vec4 color) = 0;
+	virtual void ClearAttachmentsDepthStencil(int32_t index, float depth, char stencil) = 0;
 
-	virtual void UpdateBufferData(GraphicsMemoryBuffer *buffer, int offset, int size, void *data) = 0;
+	virtual void UpdateBufferData(GraphicsMemoryBuffer *buffer, int32_t offset, int32_t size, void *data) = 0;
 
 	virtual void CopyBufferToImageWithConversion(GraphicsMemoryBuffer *srcBuffer, VectorDataFormat srcFormat, GraphicsImageObject *destImage, std::vector<GraphicsBufferImageCopyRegion> regions) = 0;
 	virtual void CopyImageToBuffer(GraphicsImageObject *srcImage, GraphicsMemoryBuffer *destBuffer, std::vector<GraphicsBufferImageCopyRegion> regions) = 0;
 
 	virtual void CopyImageToImage(GraphicsImageObject *srcImage, GraphicsImageObject *destImage, glm::ivec3 srcOffset, glm::ivec3 destOffset, glm::ivec3 size,
-		int srcLevel, int destLevel, int layers, bool color, bool depth, bool stencil) = 0;
-	virtual void CopyBufferToBuffer(GraphicsMemoryBuffer *src, GraphicsMemoryBuffer *dest, unsigned long long srcOffset, unsigned long long destOffset, int size) = 0;
+		int32_t srcLevel, int32_t destLevel, int32_t layers, bool color, bool depth, bool stencil) = 0;
+	virtual void CopyBufferToBuffer(GraphicsMemoryBuffer *src, GraphicsMemoryBuffer *dest, uint64_t srcOffset, uint64_t destOffset, int32_t size) = 0;
 
 	virtual void BeginRecording() = 0;
 	virtual void StopRecording() = 0;
@@ -341,29 +346,33 @@ class GraphicsContext
 {
 public:
 	virtual ~GraphicsContext() {}
-	virtual std::vector<GraphicsCommandBuffer *> CreateGraphicsCommandBuffers(int count, bool graphics, bool compute, bool transfer) = 0;
+	virtual std::vector<GraphicsCommandBuffer *> CreateGraphicsCommandBuffers(int32_t count, bool graphics, bool compute, bool transfer) = 0;
 	virtual GraphicsCommandBuffer *GetTransferBufferFromPool() = 0;
 	virtual GraphicsCommandBuffer *GetGraphicsBufferFromPool() = 0;
 	virtual GraphicsCommandBuffer *GetComputeBufferFromPool() = 0;
 	virtual GraphicsRenderPipeline *CreateGraphicsPipeline(GraphicsRenderPipelineState& state) = 0;
 	virtual GraphicsComputePipeline *CreateComputePipeline(GraphicsComputePipelineState& state) = 0;
-	virtual GraphicsMemoryBuffer *CreateBuffer(unsigned long long byteSize, BufferUsageBit usage, GraphicsMemoryTypeBit mem) = 0;
-	virtual GraphicsImageObject *CreateImage(ImageType type, VectorDataFormat format, glm::ivec3 size, int miplevels, ImageUsageBit usage) = 0;
-	virtual GraphicsRenderTarget *CreateRenderTarget(std::vector<GraphicsImageView *>&& attachments, GraphicsImageView *depthStencil, GraphicsRenderPass *renderPass, int width, int height, int layers) = 0;
+	virtual GraphicsMemoryBuffer *CreateBuffer(uint64_t byteSize, BufferUsageBit usage, GraphicsMemoryTypeBit mem) = 0;
+	virtual GraphicsImageObject *CreateImage(ImageType type, VectorDataFormat format, glm::ivec3 size, int32_t miplevels, ImageUsageBit usage) = 0;
+	virtual GraphicsRenderTarget *CreateRenderTarget(std::vector<GraphicsImageView *>&& attachments, GraphicsImageView *depthStencil, GraphicsRenderPass *renderPass, int32_t width, int32_t height, int32_t layers) = 0;
 	virtual GraphicsShaderDataSet *CreateShaderDataSet(std::vector<GraphicsShaderResourceViewData>&& resourceViews, std::vector<GraphicsShaderConstantData>&& constantData) = 0;
 	virtual GraphicsShaderResourceInstance *CreateShaderResourceInstance(GraphicsShaderResourceViewData& data) = 0;
 	virtual GraphicsSampler *CreateSampler(GraphicsSamplerState& state) = 0;
 	virtual GraphicsShader *CreateShader(GraphicsSpecificShaderCode *code) = 0;
 	virtual GraphicsRenderPass *CreateRenderPass(GraphicsRenderPassState& state) = 0;
-	virtual std::vector<GraphicsQuery *> CreateQueries(int count, GraphicsQueryType type) = 0;
+	virtual std::vector<GraphicsQuery *> CreateQueries(int32_t count, GraphicsQueryType type) = 0;
 	virtual GraphicsSyncObject *CreateSync(bool gpuQueueSync) = 0;
 	virtual GraphicsImageView *GetScreenImageView() = 0;
 	virtual glm::ivec2 GetScreenSize() = 0;
 	virtual GraphicsSpecificStructure& GetSpecificStructure() = 0;
+	virtual bool IsOpenGLTextureFlipYConvention() = 0;
+	virtual bool IsOpenGLNDCConvention() = 0;
+	virtual GraphicsIdentity GetIdentity() = 0;
+	virtual int32_t ConvertCubemapFaceToLayer(CubemapFace face) = 0;
 	virtual void UpdateShaderImageSamplerResourceInstance(GraphicsShaderResourceInstance *instance, std::vector<GraphicsImageView *>&& imageViews, std::vector<GraphicsSampler *>&& samplers) = 0;
 	virtual void UpdateShaderImageInputAttachmentInstance(GraphicsShaderResourceInstance *instance, std::vector<GraphicsImageView *>&& imageViews) = 0;
 	virtual void UpdateShaderImageLoadStoreResourceInstance(GraphicsShaderResourceInstance *instance, std::vector<GraphicsImageView *>&& imageViews) = 0;
-	virtual void UpdateShaderBufferResourceInstance(GraphicsShaderResourceInstance *instance, GraphicsMemoryBuffer *buffer, int offset, int range) = 0;
+	virtual void UpdateShaderBufferResourceInstance(GraphicsShaderResourceInstance *instance, GraphicsMemoryBuffer *buffer, int32_t offset, int32_t range) = 0;
 	virtual void SubmitCommands(GraphicsCommandBuffer *commands, GraphicsQueueType queue) = 0;
 	virtual void Present() = 0;
 	virtual void SyncWithCommandSubmissionThread() = 0;

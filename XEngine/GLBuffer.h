@@ -15,8 +15,8 @@ public:
 
 	GLbitfield Bits;
 
-	unsigned long long Offset;
-	int Length;
+	uint64_t Offset;
+	int32_t Length;
 
 	void *Mapped;
 
@@ -39,15 +39,15 @@ public:
 class GLBuffer : public GraphicsMemoryBuffer, public GLInitable
 {
 public:
-	GLBuffer(GraphicsContext *context, unsigned long long byteSize, GraphicsMemoryTypeBit mem);
+	GLBuffer(GraphicsContext *context, uint64_t byteSize, GraphicsMemoryTypeBit mem);
 	virtual ~GLBuffer() override;
-	virtual void MapBuffer(unsigned long long offset, int length, bool coherent, bool writeOnly) override;
+	virtual void MapBuffer(uint64_t offset, int32_t length, bool coherent, bool writeOnly) override;
 	virtual void UnmapBuffer() override;
-	virtual void FlushMapped(unsigned long long offset, int size) override;
-	virtual void InvalidateMapped(unsigned long long offset, int size) override;
+	virtual void FlushMapped(uint64_t offset, int32_t size) override;
+	virtual void InvalidateMapped(uint64_t offset, int32_t size) override;
 	virtual void *GetMappedPointer() override;
 	GLuint GetBufferId() { return m_id; }
-	unsigned long long GetSize() { return m_size; }
+	uint64_t GetSize() { return m_size; }
 	GLBufferMapRequest& GetMapRequest() { return m_request; }
 private:
 	virtual void InitInternal() override;
@@ -56,7 +56,7 @@ private:
 
 	GLBufferMapRequest m_request;
 
-	unsigned long long m_size;
+	uint64_t m_size;
 	GLuint m_id;
 	void *m_mapped = nullptr;
 };

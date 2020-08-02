@@ -11,12 +11,12 @@ enum class HardwareInterfaceType
 
 inline HardwareInterfaceType operator|(HardwareInterfaceType a, HardwareInterfaceType b)
 {
-	return static_cast<HardwareInterfaceType>(static_cast<int>(a) | static_cast<int>(b));
+	return static_cast<HardwareInterfaceType>(static_cast<int32_t>(a) | static_cast<int32_t>(b));
 }
 
 inline bool operator&(HardwareInterfaceType a, HardwareInterfaceType b)
 {
-	return static_cast<bool>(static_cast<int>(a) & static_cast<int>(b));
+	return static_cast<bool>(static_cast<int32_t>(a) & static_cast<int32_t>(b));
 }
 
 enum class HardwareStatus 

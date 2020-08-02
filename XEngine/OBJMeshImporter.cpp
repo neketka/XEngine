@@ -6,10 +6,10 @@
 #include <fstream>
 #include <iterator>
 
-std::vector<std::string> exts = { "obj" };
 
 std::vector<std::string>& OBJMeshImporter::GetFileExtensions()
 {
+	static std::vector<std::string> exts = { "obj" };
 	return exts;
 }
 
@@ -25,16 +25,14 @@ std::vector<std::string> split(const std::string& s, char delimiter)
 	return tokens;
 }
 
-void OBJMeshImporter::Import(std::string virtualPath, std::string filePath)
+void OBJMeshImporter::Import(std::string virtualPath, std::string filePath, std::string ext, void *settings)
 {
 	MeshAsset *asset = static_cast<MeshAsset *>(XEngineInstance->GetAssetManager()->CreateAssetPtr(virtualPath, "Mesh"));
 
 	asset->SetVertexFormat(GetRenderVertexData());
-	asset->SetUnifiedLOD(true);
-	asset->SetReducedMeshEnabled(false);
 
 	std::vector<RenderVertex> vertices;
-	std::vector<int> indices;
+	std::vector<int32_t> indices;
 
 	std::ifstream stream(filePath.c_str());
 	std::string line;
@@ -84,9 +82,9 @@ void OBJMeshImporter::Import(std::string virtualPath, std::string filePath)
 			vert.TangentColorB = glm::vec4(0, 0, 0, 0);
 			vert.Texcoord0ColorA = glm::vec4(0, 0, 0, 1);
 
-			int pIndex = 0;
-			int tIndex = 0;
-			int nIndex = 0;
+			int32_t pIndex = 0;
+			int32_t tIndex = 0;
+			int32_t nIndex = 0;
 
 			if (line.find('/') != std::string::npos)
 			{
@@ -160,7 +158,7 @@ void OBJMeshImporter::Import(std::string virtualPath, std::string filePath)
 
 	if (!hasNormal)
 	{
-		for (int i = 0; i < indices.size(); i += 3)
+		for (int32_t i = 0; i < indices.size(); i += 3)
 		{
 			glm::vec3 pos0 = glm::vec3(vertices[indices[i]].PositionColorR);
 			glm::vec3 pos1 = glm::vec3(vertices[indices[i + 1]].PositionColorR);
@@ -179,7 +177,7 @@ void OBJMeshImporter::Import(std::string virtualPath, std::string filePath)
 		}
 	}
 
-	for (int i = 0; i < indices.size(); i += 3)
+	for (int32_t i = 0; i < indices.size(); i += 3)
 	{
 		RenderVertex& v0 = vertices[indices[i]];
 		RenderVertex& v1 = vertices[indices[i + 1]];
@@ -208,7 +206,7 @@ void OBJMeshImporter::Import(std::string virtualPath, std::string filePath)
 	}
 
 	std::vector<ClusterData> dat;
-	asset->SetMeshData(vertices.data(), vertices.size(), indices.data(), indices.size(), true);
+	asset->SetMeshData(vertices.data(), vertices.size(), indices.data(), indices.size());
 	asset->SetClusterData(dat.data(), 0);
 
 	asset->OptimizeCacheAndBuildClusters();

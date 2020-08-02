@@ -37,6 +37,8 @@ public:
 		m_held = asset.m_held;
 		return *this; 
 	}
+	T *operator->() { return static_cast<T *>(m_held); }
+	T& operator* () { return static_cast<T&>(*m_held); }
 	T& Get() { return *static_cast<T *>(m_held); }
 	void RemoveThisReference() { if (m_held) m_held->RemoveRef(); m_held = nullptr; }
 private:
@@ -63,7 +65,8 @@ public:
 	virtual void Unload(IAsset *asset) = 0;
 
 	virtual void Dispose(IAsset *asset) = 0;
-	virtual void Export(IAsset *asset, AssetDescriptorPreHeader& preHeader, LoadMemoryPointer& header, LoadMemoryPointer& content) = 0;
+	virtual void Export(IAsset *asset, AssetDescriptorPreHeader& preHeader, LoadMemoryPointer& header, LoadMemoryPointer& content,
+		std::vector<AssetLoadRange>& ranges) = 0;
 };
 
 class IFormatImporter
@@ -71,7 +74,7 @@ class IFormatImporter
 public:
 	virtual ~IFormatImporter() = 0;
 	virtual std::vector<std::string>& GetFileExtensions() = 0;
-	virtual void Import(std::string virtualPath, std::string filePath) = 0;
+	virtual void Import(std::string virtualPath, std::string filePath, std::string ext, void *settings) = 0;
 };
 
 class StoredAssetPtr
@@ -94,6 +97,14 @@ public:
 	LoadMemoryPointer LoadData;
 };
 
+class AssetUnloadRequest
+{
+public:
+	AssetUnloadRequest(IAssetLoader *loader, IAsset *asset) : Loader(loader), Asset(asset) { }
+	IAssetLoader *Loader;
+	IAsset *Asset;
+};
+
 class AssetExportRequest 
 {
 public:
@@ -105,7 +116,7 @@ public:
 class AssetManager
 {
 public:
-	XENGINEAPI AssetManager(int loadMemSize, int assetMemSize);
+	XENGINEAPI AssetManager(int32_t loadMemSize, int32_t assetMemSize);
 	XENGINEAPI ~AssetManager();
 
 	XENGINEAPI void AddAsset(std::string path, IAsset *asset);
@@ -136,9 +147,10 @@ public:
 	XENGINEAPI void ReassignPath(UniqueId id, std::string path);
 
 	XENGINEAPI void PushLoadRequest(IAssetLoader *loader, IAsset *asset, LoadMemoryPointer loadData);
+	XENGINEAPI void PushUnloadRequest(IAssetLoader *loader, IAsset *asset);
 
-	XENGINEAPI void ImportAsAssets(std::string path, std::string filePath);
-	XENGINEAPI std::vector<std::string> MergeAssetBundles(std::vector<std::string>& bundles, unsigned long long maxSize);
+	XENGINEAPI void ImportAsAssets(std::string path, std::string filePath, void *settings);
+	XENGINEAPI std::vector<std::string> MergeAssetBundles(std::vector<std::string>& bundles, uint64_t maxSize);
 
 	template<class T>
 	RefCountedAsset<T> GetAsset(UniqueId id) { return RefCountedAsset<T>(GetAssetPtr(id)); }
@@ -160,6 +172,7 @@ private:
 	std::unordered_map<std::string, IFormatImporter *> m_importers;
 
 	concurrency::concurrent_queue<AssetLoadRequest> m_loadRequests;
+	concurrency::concurrent_queue<AssetUnloadRequest> m_unloadRequests;
 	concurrency::concurrent_queue<AssetExportRequest> m_exportRequests;
 
 	concurrency::concurrent_unordered_map<std::string, UniqueId> m_pathToId;

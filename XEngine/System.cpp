@@ -68,7 +68,7 @@ void SubsystemManager::ScheduleJobs()
 	}
 }
 
-void SubsystemManager::ExecuteJobs(int threadIndex, float deltaTime)
+void SubsystemManager::ExecuteJobs(int32_t threadIndex, float deltaTime)
 {
 	m_systemGraph->SetDeltaTime(deltaTime); // Presumably, all the deltaTime is the same across all threads
 
@@ -84,7 +84,7 @@ void SubsystemManager::ExecuteJobs(int threadIndex, float deltaTime)
 	
 	for (ISystem *system : m_nonMainThreadSystems)
 	{
-		int jobIndex = --system->__jobsLeft;
+		int32_t jobIndex = --system->__jobsLeft;
 		while (jobIndex >= 0)
 		{
 			system->PostUpdate(deltaTime, jobIndex);

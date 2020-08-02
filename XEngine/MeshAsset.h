@@ -54,15 +54,10 @@ XENGINEAPI std::vector<VectorDataFormat>& GetSkinnedVertexData();
 class MeshAssetHeader
 {
 public:
-	int FullVertexCount = 0;
-	int ReducedVertexCount = 0;
-	int FullIndexCount = 0;
-	int ReducedIndexCount = 0;
-	int ClusterCount = 0;
-	int VertexElementCount = 0;
-
-	bool ReducedIsSameAsFull = false;
-	bool HasReducedMesh = false;
+	int32_t FullVertexCount = 0;
+	int32_t FullIndexCount = 0;
+	int32_t ClusterCount = 0;
+	int32_t VertexElementCount = 0;
 };
 
 class MeshAssetLoader;
@@ -80,53 +75,44 @@ public:
 	XENGINEAPI UniqueId GetVertexFormatId();
 
 	template<class T>
-	void SetMeshData(T *vertices, int vCount, int *indices, int iCount, bool reduced)
+	void SetMeshData(T *vertices, int32_t vCount, int32_t *indices, int32_t iCount)
 	{
-		SetMeshDataInternal(vertices, sizeof(T), vCount, indices, iCount, reduced);
+		SetMeshDataInternal(vertices, sizeof(T), vCount, indices, iCount);
 	}
-	XENGINEAPI void SetClusterData(ClusterData *data, int count);
+	XENGINEAPI void SetClusterData(ClusterData *data, int32_t count);
 
 	template<class T>
-	PinnedLocalMemory<T> GetVertices(bool reduced)
+	PinnedLocalMemory<T> GetVertices()
 	{
-		if (UseReduced(reduced))
-			return m_vAlloc->GetMemory<T>(m_reducedLodElementsCPU);
-		else
-			return m_vAlloc->GetMemory<T>(m_fullLodElementsCPU);
+		return m_vAlloc->GetMemory<T>(m_fullLodElementsCPU);
 	}
-	XENGINEAPI PinnedLocalMemory<int> GetIndices(bool reduced);
+	XENGINEAPI PinnedLocalMemory<int32_t> GetIndices();
 	XENGINEAPI PinnedLocalMemory<ClusterData> GetClusterData();
-	XENGINEAPI int GetIndexCount(bool reduced);
+	XENGINEAPI int32_t GetIndexCount();
 
 	MeshAssetHeader& GetMeshHeader() { return m_meshHeader; }
 
-	XENGINEAPI PinnedGPUMemory GetGPUVertices(bool reduced);
-	XENGINEAPI PinnedGPUMemory GetGPUIndices(bool reduced);
+	XENGINEAPI PinnedGPUMemory GetGPUVertices();
+	XENGINEAPI PinnedGPUMemory GetGPUIndices();
 
-	XENGINEAPI void Invalidate(bool reduced);
+	XENGINEAPI void Invalidate();
 
-	XENGINEAPI void UpdateGPUVertices(bool reduced);
-	XENGINEAPI void UpdateGPUIndices(bool reduced);
+	XENGINEAPI void UpdateGPUVertices();
+	XENGINEAPI void UpdateGPUIndices();
 
 	XENGINEAPI void OptimizeCacheAndBuildClusters();
 
-	XENGINEAPI void SetReducedMeshEnabled(bool state);
-	XENGINEAPI void SetUnifiedLOD(bool state);
-
-	bool IsNonPersistentLoaded() { return m_loadingState == MeshAssetLoadingState::LoadedFull; }
+	bool IsLoaded() { return m_loadingState == MeshAssetLoadingState::LoadedFull; }
 
 	XENGINEAPI bool IsFullMeshAvailable();
-	XENGINEAPI bool IsReducedMeshAvailable();
 	XENGINEAPI void LoadFullMesh();
 private:
 	std::atomic<MeshAssetLoadingState> m_loadingState = MeshAssetLoadingState::NotLoaded;
-	bool UseReduced(bool reduced) { return (reduced && m_meshHeader.HasReducedMesh) || (m_meshHeader.ReducedIsSameAsFull && 
-		m_meshHeader.HasReducedMesh && !reduced); }
 	friend class MeshAssetLoader;
 
 	LocalMemoryAllocator *m_vAlloc;
 
-	XENGINEAPI void SetMeshDataInternal(void *vertices, int tSize, int vCount, int *indices, int iCount, bool reduced);
+	XENGINEAPI void SetMeshDataInternal(void *vertices, int32_t tSize, int32_t vCount, int32_t *indices, int32_t iCount);
 	XENGINEAPI LocalMemoryAllocator& GetAssetAllocator();
 
 	MeshAssetLoader *m_loader;
@@ -140,18 +126,11 @@ private:
 	std::shared_ptr<GraphicsSyncObject> m_uploadFullVerticesSync;
 	std::shared_ptr<GraphicsSyncObject> m_uploadFullIndicesSync;
 
-	std::shared_ptr<GraphicsSyncObject> m_uploadReducedVerticesSync;
-	std::shared_ptr<GraphicsSyncObject> m_uploadReducedIndicesSync;
-
 	AssetMemoryPointer m_fullLodElementsCPU;
-	AssetMemoryPointer m_reducedLodElementsCPU;
 	AssetMemoryPointer m_fullLodIndicesCPU;
-	AssetMemoryPointer m_reducedLodIndicesCPU;
 
 	VertexMemoryPointer m_fullLodElementsGPU;
-	VertexMemoryPointer m_reducedLodElementsGPU;
 	IndexMemoryPointer m_fullLodIndicesGPU;
-	IndexMemoryPointer m_reducedLodIndicesGPU;
 
 	UniqueId m_vertexTypeId;
 
@@ -164,23 +143,23 @@ class MeshVertexAllocationPoint
 public:
 	GPUMemoryAllocator *MemoryAllocator;
 	std::vector<VectorDataFormat> VertexVectorElements;
-	std::vector<int> BytesVertexSizes;
-	int BytesPerVertex;
+	std::vector<int32_t> BytesVertexSizes;
+	int32_t BytesPerVertex;
 };
 
 class MeshAssetLoader : public IAssetLoader
 {
 public:
-	XENGINEAPI MeshAssetLoader(int minVertexCount, int minIndexCount);
+	XENGINEAPI MeshAssetLoader(int32_t minVertexCount, int32_t minIndexCount);
 	virtual ~MeshAssetLoader() override;
 
 	XENGINEAPI UniqueId GetVertexType(std::vector<VectorDataFormat> descs);
-	XENGINEAPI VertexMemoryPointer AllocateVertices(UniqueId vertexId, int count);
-	XENGINEAPI std::shared_ptr<GraphicsSyncObject> UploadVertices(VertexMemoryPointer ptr, UniqueId vertexId, int offset, void *data, int count);
+	XENGINEAPI VertexMemoryPointer AllocateVertices(UniqueId vertexId, int32_t count);
+	XENGINEAPI std::shared_ptr<GraphicsSyncObject> UploadVertices(VertexMemoryPointer ptr, UniqueId vertexId, int32_t offset, void *data, int32_t count);
 	XENGINEAPI void DeallocateVertices(VertexMemoryPointer ptr, UniqueId vertexId);
 
-	XENGINEAPI IndexMemoryPointer AllocateIndices(int count);
-	XENGINEAPI std::shared_ptr<GraphicsSyncObject> UploadIndices(IndexMemoryPointer ptr, int offset, int *data, int count);
+	XENGINEAPI IndexMemoryPointer AllocateIndices(int32_t count);
+	XENGINEAPI std::shared_ptr<GraphicsSyncObject> UploadIndices(IndexMemoryPointer ptr, int32_t offset, int32_t *data, int32_t count);
 	XENGINEAPI void DeallocateIndices(IndexMemoryPointer ptr);
 
 	XENGINEAPI MeshVertexAllocationPoint& GetMeshMemory(UniqueId vertexId);
@@ -198,11 +177,12 @@ public:
 	virtual void FinishLoad(IAsset *asset, std::vector<AssetLoadRange>& ranges, std::vector<LoadMemoryPointer>& content, LoadMemoryPointer loadData) override;
 	virtual void Unload(IAsset *asset) override;
 	virtual void Dispose(IAsset *asset) override;
-	virtual void Export(IAsset *asset, AssetDescriptorPreHeader& preHeader, LoadMemoryPointer& header, LoadMemoryPointer& content) override;
+	virtual void Export(IAsset *asset, AssetDescriptorPreHeader& preHeader, LoadMemoryPointer& header, LoadMemoryPointer& content,
+		std::vector<AssetLoadRange>& ranges) override;
 private:
 	FileSpec m_meshSpec;
 
-	int m_minVertexCount, m_minIndexCount;
+	int32_t m_minVertexCount, m_minIndexCount;
 
 	GraphicsContext *m_context;
 

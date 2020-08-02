@@ -4,7 +4,7 @@
 #include <memory>
 
 // Initialize the variables
-MemoryChunkAllocator::MemoryChunkAllocator(int objectsPerChunk, int bytesPerObject) : m_objectsPerChunk(objectsPerChunk), m_bytesPerObject(bytesPerObject), 
+MemoryChunkAllocator::MemoryChunkAllocator(int32_t objectsPerChunk, int32_t bytesPerObject) : m_objectsPerChunk(objectsPerChunk), m_bytesPerObject(bytesPerObject), 
 	m_bufferedCount(0), m_chunkCount(0), m_fullChunks(0)
 { 
 	m_mutex = new std::mutex;
@@ -22,7 +22,7 @@ MemoryChunkObjectPointer MemoryChunkAllocator::AllocateObject()
 	m_mutex->lock();
 	if (m_fullChunks == m_allChunks.size()) // If all chunks are full
 	{
-		for (int i = 0; i < m_bufferedCount + 1; ++i) // Add empty chunks for future allocations and this one
+		for (int32_t i = 0; i < m_bufferedCount + 1; ++i) // Add empty chunks for future allocations and this one
 			AllocateNewChunk();
 		++m_chunkCount; // Increase the amount of usable chunks
 	}
@@ -99,13 +99,13 @@ void *MemoryChunkAllocator::GetObjectMemory(MemoryChunkObjectPointer ptr)
 	return val;
 }
 
-void MemoryChunkAllocator::SetBufferedChunkCount(int count)
+void MemoryChunkAllocator::SetBufferedChunkCount(int32_t count)
 {
 	m_mutex->lock();
 	m_bufferedCount = count;
-	for (int i = 0; i < m_bufferedCount - (m_allChunks.size() - m_chunkCount); ++i) // Allocate the amount of chunks needed to meet the empty chunk requirement
+	for (int32_t i = 0; i < m_bufferedCount - (m_allChunks.size() - m_chunkCount); ++i) // Allocate the amount of chunks needed to meet the empty chunk requirement
 		AllocateNewChunk();
-	for (int i = 0; i < (m_allChunks.size() - m_chunkCount) - m_bufferedCount; ++i) // Delete the chunks if there are too many empty ones
+	for (int32_t i = 0; i < (m_allChunks.size() - m_chunkCount) - m_bufferedCount; ++i) // Delete the chunks if there are too many empty ones
 	{
 		std::free(m_allChunks.back().Memory);
 		m_allChunks.pop_back();
@@ -118,7 +118,7 @@ std::vector<MemoryChunk>& MemoryChunkAllocator::GetAllChunks()
 	return m_allChunks;
 }
 
-int MemoryChunkAllocator::GetActiveChunkCount()
+int32_t MemoryChunkAllocator::GetActiveChunkCount()
 {
 	return m_chunkCount;
 }
@@ -134,7 +134,7 @@ void MemoryChunkAllocator::AllocateNewChunk()
 	size_t space = (m_objectsPerChunk + 1) * m_bytesPerObject;
 	chunk.Memory = std::align(16, m_objectsPerChunk * m_bytesPerObject, chunk.Memory, space); // Align for SIMD
 	*/
-	for (int i = 0; i < m_objectsPerChunk; ++i)
+	for (int32_t i = 0; i < m_objectsPerChunk; ++i)
 	{
 		chunk.Objects.push_back(MemoryChunkObject());
 		MemoryChunkObject& obj = chunk.Objects.back();

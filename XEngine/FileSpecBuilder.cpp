@@ -33,7 +33,7 @@ LoadMemoryPointer FileSpecExporter::AllocateSpace()
 	{
 		if (pair.second.Array || pair.second.String)
 		{
-			int& size = *reinterpret_cast<int *>(m_space.GetData() + pair.second.FileOffset - 4);
+			int32_t& size = *reinterpret_cast<int32_t *>(m_space.GetData() + pair.second.FileOffset - 4);
 			size = pair.second.Size;
 		}
 	}
@@ -46,12 +46,12 @@ FileSpecImporter::FileSpecImporter(FileSpec& spec, LoadMemoryPointer data) : m_f
 {
 	m_space = XEngineInstance->GetAssetManager()->GetLoadMemory().GetMemory<char>(data);
 
-	unsigned long long pointer = 0;
+	uint64_t pointer = 0;
 	for (auto& pair : m_fileEntries)
 	{
 		if (pair.second.Array || pair.second.String)
 		{
-			pair.second.Size = *reinterpret_cast<int *>(m_space.GetData() + pointer);
+			pair.second.Size = *reinterpret_cast<int32_t *>(m_space.GetData() + pointer);
 			pointer += 4;
 			pair.second.FileOffset = pointer;
 			pointer += pair.second.ElementTypeByteSize * pair.second.Size;
@@ -64,7 +64,7 @@ FileSpecImporter::FileSpecImporter(FileSpec& spec, LoadMemoryPointer data) : m_f
 	}
 }
 
-int FileSpecImporter::GetArraySize(std::string name)
+int32_t FileSpecImporter::GetArraySize(std::string name)
 {
 	return m_fileEntries[name].Size;
 }
@@ -72,4 +72,19 @@ int FileSpecImporter::GetArraySize(std::string name)
 std::string FileSpecImporter::GetString(std::string name)
 {
 	return std::string(m_space.GetData() + m_fileEntries[name].FileOffset, m_fileEntries[name].Size - 1);
+}
+
+void FileSpecImporter::GetStringArray(std::string name, std::vector<std::string>& dest)
+{
+	dest.clear();
+
+	char *ptr = m_space.GetData() + m_fileEntries[name].FileOffset;
+	char *end = ptr + *reinterpret_cast<int32_t *>(m_space.GetData() + m_fileEntries[name].FileOffset - 4);
+	for (; ptr < end;)
+	{
+		int32_t size = *reinterpret_cast<int32_t *>(ptr);
+		ptr += 4;
+		dest.push_back(std::string(ptr, size));
+		ptr += size;
+	}
 }

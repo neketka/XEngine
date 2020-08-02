@@ -27,19 +27,19 @@ public:
 
 	void Signal(bool val) { m_signaled = true; m_signalVal = val; }
 	void ResetSignaled() { m_signaled = false; }
-	unsigned long long GetWaitTime() { return m_curWaitTime; }
+	uint64_t GetWaitTime() { return m_curWaitTime; }
 	bool IsWaiting() { return m_waiting; }
 	virtual void Reset() override;
 
-	virtual bool Wait(unsigned long long nanoSecTimeout) override;
+	virtual bool Wait(uint64_t nanoSecTimeout) override;
 	virtual bool GetCurrentStatus() override;
 private:
 	std::atomic_bool m_signalVal;
 	std::atomic_bool m_signaled = false;
 	bool m_waiting;
 	bool m_hasSync = false;
-	unsigned long long m_curWaitTime;
+	uint64_t m_curWaitTime;
 	GraphicsContext *m_context;
-	unsigned long long m_nanoSecTimeout;
+	uint64_t m_nanoSecTimeout;
 	GLsync m_sync;
 };

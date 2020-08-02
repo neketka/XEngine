@@ -11,14 +11,14 @@ public:
 	GLPipeline(GraphicsContext *context, GraphicsRenderPipelineState& state);
 	virtual ~GLPipeline() override;
 	void BindState();
-	int GetBindingStride(int binding) { return m_bindingStrides[binding]; }
+	int32_t GetBindingStride(int32_t binding) { return m_bindingStrides[binding]; }
 	GLuint GetStage(ShaderStageBit bits) { return m_stageToProgram[bits]; }
 	GLuint GetVao() { return m_vao; }
 	GraphicsPrimitiveType GetTopology() { return m_state.VertexInputState.Topology; }
 	GraphicsRenderPipelineState& GetState() { return m_state; }
 private:
 	GraphicsContext *m_context;
-	std::map<int, int> m_bindingStrides;
+	std::map<int32_t, int32_t> m_bindingStrides;
 	std::map<ShaderStageBit, GLuint> m_stageToProgram;
 	GraphicsRenderPipelineState m_state;
 	GLuint m_vao;

@@ -46,17 +46,17 @@ std::string ECSRegistrar::GetComponentName(UniqueId id)
 	return m_components[id].Name;
 }
 
-int ECSRegistrar::GetComponentSize(UniqueId id)
+int32_t ECSRegistrar::GetComponentSize(UniqueId id)
 {
 	return m_components[id].Size;
 }
 
-int ECSRegistrar::GetComponentPointerOffset(UniqueId id)
+int32_t ECSRegistrar::GetComponentPointerOffset(UniqueId id)
 {
 	return m_components[id].ComponentOffset;
 }
 
-int ECSRegistrar::GetBufferPointerOffset(UniqueId id)
+int32_t ECSRegistrar::GetBufferPointerOffset(UniqueId id)
 {
 	return m_components[id].BufferOffset;
 }

@@ -12,30 +12,30 @@ class AssetDescriptorPreHeader
 public:
 	char AssetType[64];
 	UniqueId Id;
-	unsigned long long HeaderSize;
-	unsigned long long AssetSize;
+	uint64_t HeaderSize;
+	uint64_t AssetSize;
 };
 
 class AssetLoadRange
 {
 public:
-	int ByteOffset;
-	int Size;
-	int BulkLoadIndex;
-	int InternalId;
+	int32_t ByteOffset;
+	int32_t Size;
+	int32_t BulkLoadIndex;
+	int32_t InternalId;
 };
 
 class AssetBundleHeaderEntry
 {
 public:
 	std::string VirtualAssetPath;
-	unsigned long long OffsetFromZero;
+	uint64_t OffsetFromZero;
 };
 
 class AssetBundleHeader
 {
 public:
-	unsigned long long ByteSize;
+	uint64_t ByteSize;
 	std::string Path;
 	std::map<std::string, AssetBundleHeaderEntry> Assets;
 };
@@ -53,7 +53,8 @@ public:
 	void LoadAssetDataFromHeader(AssetBundleHeader& header, std::string path,
 		std::vector<AssetLoadRange>& ranges, std::vector<LoadMemoryPointer>& dest);
 	void ExportAssetBundleToDisc(std::string filePath, std::vector<AssetDescriptorPreHeader>& preHeaders, 
-		std::vector<std::string>& paths, std::vector<LoadMemoryPointer>& headers, std::vector<LoadMemoryPointer>& contents);
+		std::vector<std::string>& paths, std::vector<LoadMemoryPointer>& headers, std::vector<LoadMemoryPointer>& contents,
+		std::vector<std::vector<AssetLoadRange>>& ranges);
 
 private:
 	std::map<std::string, AssetBundleHeader> m_headers;

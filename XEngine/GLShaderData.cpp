@@ -4,43 +4,62 @@
 
 GLuint GLShader::GetSpecialization(GLShaderSpecialization *specialization)
 {
-	auto found = m_specializations.find(specialization->GetDefines());
-	if (found != m_specializations.end())
-		return found->second;
+	GLuint shader = glCreateShader(ConvertFromShaderStage(m_code.GetStage()));
+	GLuint program = glCreateProgram();
 
-	std::vector<std::string> sBuffers;
-	std::vector<const char *> strings;
-	sBuffers.reserve(specialization->GetDefines().size() + 3);
-	strings.reserve(specialization->GetDefines().size() + 3);
-	strings.push_back("#version 460\n");
-	for (std::string specs : specialization->GetDefines())
+	std::vector<GLuint> locs(specialization->GetConstants().size());
+	std::vector<GLuint> values(specialization->GetConstants().size());
+
+	for (auto [loc, val] : specialization->GetConstants())
 	{
-		sBuffers.push_back("#define " + specs + "\n");
-		strings.push_back(sBuffers.back().c_str());
+		locs.push_back(loc);
+		values.push_back(val);
 	}
-	strings.push_back("#line 0\n");
-	strings.push_back(m_code.GetCode().c_str());
 
-	GLuint shader = glCreateShaderProgramv(ConvertFromShaderStage(m_code.GetStage()), strings.size(), strings.data());
+	glProgramParameteri(program, GL_PROGRAM_SEPARABLE, GL_TRUE);
+	glShaderBinary(1, &shader, GL_SHADER_BINARY_FORMAT_SPIR_V_ARB, m_code.GetCode().data(), m_code.GetCode().size() * sizeof(uint32_t));
+	glSpecializeShaderARB(shader, specialization->GetEntryPoint().c_str(), locs.size(), locs.data(), values.data());
+	glAttachShader(program, shader);
+	glLinkProgram(program);
+	glDeleteShader(shader);
 
 	GLsizei len = 0;
-	glGetProgramiv(shader, GL_INFO_LOG_LENGTH, &len);
+	glGetShaderiv(shader, GL_INFO_LOG_LENGTH, &len);
+	char *log0 = new char[len];
+	glGetShaderInfoLog(shader, len, nullptr, log0);
+
+	len = 0;
+	glGetProgramiv(program, GL_INFO_LOG_LENGTH, &len);
 	char *log = new char[len];
-	glGetProgramInfoLog(shader, len, nullptr, log);
+	glGetProgramInfoLog(program, len, nullptr, log);
+	
+	delete[] log0;
 	delete[] log;
 
 	//TODO: Error checking
+	
+	std::set<std::pair<uint32_t, uint32_t>> st(specialization->GetConstants().begin(), specialization->GetConstants().end());
 
-	m_specializations[specialization->GetDefines()] = shader;
-	return shader;
+	m_specializations[st] = program;
+	return program;
+}
+
+void GLShader::ClearSpecializations()
+{
+	std::map<std::set<std::pair<GLuint, GLuint>>, GLuint> specializations = m_specializations;
+	dynamic_cast<GLContext *>(m_context)->DeleteInitable([specializations]() {
+		for (auto kp : specializations)
+			glDeleteProgram(kp.second);
+		});
+	m_specializations.clear();
 }
 
 GLShader::~GLShader()
 {
-	std::map<std::set<std::string>, GLuint> specializations = m_specializations;
+	std::map<std::set<std::pair<GLuint, GLuint>>, GLuint> specializations = m_specializations;
 	dynamic_cast<GLContext *>(m_context)->DeleteInitable([specializations]() {
 		for (auto kp : specializations)
-			glDeleteShader(kp.second);
+			glDeleteProgram(kp.second);
 	});
 }
 

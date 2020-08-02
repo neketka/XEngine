@@ -339,3 +339,5 @@ ASALocalRun/
 # BeatPulse healthcheck temp database
 healthchecksdb
 /XEngineLoader/Assets/models.xasset
+/Dep/shaderc/lib/shaderc_combined.lib
+/Dep/shaderc/lib/shaderc_combined_debug.lib

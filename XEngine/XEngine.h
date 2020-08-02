@@ -25,12 +25,12 @@ public:
 	XENGINEAPI void Shutdown();
 	XENGINEAPI bool IsRunning();
 
-	XENGINEAPI void AddPropertySet(std::map<std::string, int> properties);
+	XENGINEAPI void AddPropertySet(std::map<std::string, int32_t> properties);
 	XENGINEAPI void AddPropertySet(std::map<std::string, std::string> properties);
-	XENGINEAPI void SetProperty(std::string key, int value);
+	XENGINEAPI void SetProperty(std::string key, int32_t value);
 	XENGINEAPI void SetProperty(std::string key, std::string value);
 	XENGINEAPI std::string *GetStringProperty(std::string key);
-	XENGINEAPI int *GetIntProperty(std::string key);
+	XENGINEAPI int32_t *GetIntProperty(std::string key);
 
 	XENGINEAPI void SaveProperties(); 
 	XENGINEAPI void LoadProperties();
@@ -58,7 +58,7 @@ public:
 	XENGINEAPI ECSRegistrar *GetECSRegistrar();
 	XENGINEAPI AssetManager *GetAssetManager();
 
-	XENGINEAPI static void InitializeEngine(std::string name, int threadCount, bool defaultSystems = true, std::string rootPath = "");
+	XENGINEAPI static void InitializeEngine(std::string name, int32_t threadCount, bool defaultSystems = true, std::string rootPath = "");
 	XENGINEAPI static XEngine& GetInstance();
 
 	XENGINEAPI void DoIdleWork();
@@ -71,13 +71,13 @@ public:
 		return dynamic_cast<T *>(m_hwInterfaces[type]);
 	}
 
-	void SetMaxFPS(int fps) { m_maxFps = fps; }
-	void SetFPSAverageInterval(int interval) { m_fpsAvgInterval = interval; }
+	void SetMaxFPS(int32_t fps) { m_maxFps = fps; }
+	void SetFPSAverageInterval(int32_t interval) { m_fpsAvgInterval = interval; }
 
-	int GetMaxFPS() { return m_maxFps; }
-	int GetAverageFrametime() { return m_frameTimeAvg; }
-	int GetFPSAverageInterval() { return m_fpsAvgInterval; }
-	int GetAverageFramerate() { return m_fps; }
+	int32_t GetMaxFPS() { return m_maxFps; }
+	int32_t GetAverageFrametime() { return m_frameTimeAvg; }
+	int32_t GetFPSAverageInterval() { return m_fpsAvgInterval; }
+	int32_t GetAverageFramerate() { return m_fps; }
 
 	std::string GetName() { return m_name; }
 
@@ -88,7 +88,7 @@ private:
 
 	UniqueId m_engineInstanceId;
 	
-	void RunECSThread(int index);
+	void RunECSThread(int32_t index);
 	std::thread **m_ecsThreads;
 	std::atomic_int m_ecsQueued;
 	float m_ecsDt;
@@ -97,12 +97,12 @@ private:
 	std::string m_rootPath;
 	std::string m_name;
 
-	int m_maxECSThreads;
+	int32_t m_maxECSThreads;
 
-	int m_maxFps = 240;
-	int m_fps = 0;
+	int32_t m_maxFps = 240;
+	int32_t m_fps = 0;
 	float m_frameTimeAvg = 0;
-	int m_fpsAvgInterval = 10;
+	int32_t m_fpsAvgInterval = 10;
 
 	bool m_running = false;
 
@@ -115,7 +115,7 @@ private:
 	float m_globalTimeScale = 1.f;
 	float m_time = 0.f;
 
-	std::map<std::string, int> m_intProps;
+	std::map<std::string, int32_t> m_intProps;
 	std::map<std::string, std::string> m_stringProps;
 
 	std::chrono::time_point<std::chrono::steady_clock> m_beginTime;

@@ -70,12 +70,12 @@ enum class BufferUsageBit
 
 inline BufferUsageBit operator|(BufferUsageBit a, BufferUsageBit b)
 {
-	return static_cast<BufferUsageBit>(static_cast<int>(a) | static_cast<int>(b));
+	return static_cast<BufferUsageBit>(static_cast<int32_t>(a) | static_cast<int32_t>(b));
 }
 
 inline bool operator&(BufferUsageBit a, BufferUsageBit b)
 {
-	return static_cast<bool>(static_cast<int>(a) & static_cast<int>(b));
+	return static_cast<bool>(static_cast<int32_t>(a) & static_cast<int32_t>(b));
 }
 
 enum class ImageUsageBit
@@ -85,12 +85,12 @@ enum class ImageUsageBit
 
 inline ImageUsageBit operator|(ImageUsageBit a, ImageUsageBit b)
 {
-	return static_cast<ImageUsageBit>(static_cast<int>(a) | static_cast<int>(b));
+	return static_cast<ImageUsageBit>(static_cast<int32_t>(a) | static_cast<int32_t>(b));
 }
 
 inline bool operator&(ImageUsageBit a, ImageUsageBit b)
 {
-	return static_cast<bool>(static_cast<int>(a) & static_cast<int>(b));
+	return static_cast<bool>(static_cast<int32_t>(a) & static_cast<int32_t>(b));
 }
 
 enum class ImageSwizzleComponent
@@ -105,12 +105,12 @@ enum class ShaderStageBit
 
 inline ShaderStageBit operator|(ShaderStageBit a, ShaderStageBit b)
 {
-	return static_cast<ShaderStageBit>(static_cast<int>(a) | static_cast<int>(b));
+	return static_cast<ShaderStageBit>(static_cast<int32_t>(a) | static_cast<int32_t>(b));
 }
 
 inline bool operator&(ShaderStageBit a, ShaderStageBit b)
 {
-	return static_cast<bool>(static_cast<int>(a) & static_cast<int>(b));
+	return static_cast<bool>(static_cast<int32_t>(a) & static_cast<int32_t>(b));
 }
 
 enum class ShaderResourceType
@@ -137,12 +137,12 @@ enum class MemoryBarrierBit
 
 inline MemoryBarrierBit operator|(MemoryBarrierBit a, MemoryBarrierBit b)
 {
-	return static_cast<MemoryBarrierBit>(static_cast<int>(a) | static_cast<int>(b));
+	return static_cast<MemoryBarrierBit>(static_cast<int32_t>(a) | static_cast<int32_t>(b));
 }
 
 inline bool operator&(MemoryBarrierBit a, MemoryBarrierBit b)
 {
-	return static_cast<bool>(static_cast<int>(a) & static_cast<int>(b));
+	return static_cast<bool>(static_cast<int32_t>(a) & static_cast<int32_t>(b));
 }
 
 enum class GraphicsQueryType
@@ -157,10 +157,15 @@ enum class GraphicsMemoryTypeBit
 
 inline GraphicsMemoryTypeBit operator|(GraphicsMemoryTypeBit a, GraphicsMemoryTypeBit b)
 {
-	return static_cast<GraphicsMemoryTypeBit>(static_cast<int>(a) | static_cast<int>(b));
+	return static_cast<GraphicsMemoryTypeBit>(static_cast<int32_t>(a) | static_cast<int32_t>(b));
 }
 
 inline bool operator&(GraphicsMemoryTypeBit a, GraphicsMemoryTypeBit b)
 {
-	return static_cast<bool>(static_cast<int>(a) & static_cast<int>(b));
+	return static_cast<bool>(static_cast<int32_t>(a) & static_cast<int32_t>(b));
 }
+
+enum class CubemapFace
+{
+	Front, Back, Top, Bottom, Left, Right
+};

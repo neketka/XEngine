@@ -5,12 +5,12 @@
 class RingAllocator
 {
 public:
-	RingAllocator(int size);
-	int AllocateMemory(int size, int alignment, bool overwrite);
-	void Remove(int size, int alignment);
+	RingAllocator(int32_t size);
+	int32_t AllocateMemory(int32_t size, int32_t alignment, bool overwrite);
+	void Remove(int32_t size, int32_t alignment);
 private:
-	int m_size;
-	int m_validRangeBegin;
-	int m_validRangeEnd;
+	int32_t m_size;
+	int32_t m_validRangeBegin;
+	int32_t m_validRangeEnd;
 };
 

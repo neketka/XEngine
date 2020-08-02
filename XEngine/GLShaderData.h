@@ -32,18 +32,18 @@ public:
 
 	void BindImages(std::vector<GraphicsImageView *> views) { m_views = views; }
 	void BindImageSamplers(std::vector<GraphicsImageView *> views, std::vector<GraphicsSampler *> samplers) { m_views = views; m_samplers = samplers; }
-	void BindBuffer(GraphicsMemoryBuffer *buffer, int offset, int range) { m_buffer = buffer; m_offset = offset; m_range = range; }
+	void BindBuffer(GraphicsMemoryBuffer *buffer, int32_t offset, int32_t range) { m_buffer = buffer; m_offset = offset; m_range = range; }
 
-	int GetBufferOffset() { return m_offset; }
-	int GetBufferRange() { return m_range; }
+	int32_t GetBufferOffset() { return m_offset; }
+	int32_t GetBufferRange() { return m_range; }
 	std::vector<GraphicsImageView *>& GetImageViews() { return m_views; }
 	std::vector<GraphicsSampler *>& GetSamplers() { return m_samplers; }
 	GraphicsMemoryBuffer *GetBuffer() { return m_buffer; }
 	std::vector<GLuint>& GetSamplerIds() { return m_samplerIds; }
 	std::vector<GLuint>& GetViewIds() { return m_viewIds; }
 private:
-	int m_offset;
-	int m_range;
+	int32_t m_offset;
+	int32_t m_range;
 	std::vector<GLuint> m_samplerIds;
 	std::vector<GLuint> m_viewIds;
 	std::vector<GraphicsImageView *> m_views;
@@ -60,10 +60,11 @@ public:
 	GLShader(GraphicsContext *context, GLShaderCode *code) : m_code(code->GetCode(), code->GetStage()), m_context(context) {}
 	GLShaderCode& GetShaderCode() { return m_code; }
 	GLuint GetSpecialization(GLShaderSpecialization *specialization);
+	void ClearSpecializations();
 
 	virtual ~GLShader() override;
 private:
 	GraphicsContext *m_context;
-	std::map<std::set<std::string>, GLuint> m_specializations;
+	std::map<std::set<std::pair<GLuint, GLuint>>, GLuint> m_specializations;
 	GLShaderCode m_code;
 };

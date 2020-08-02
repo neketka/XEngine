@@ -7,7 +7,7 @@
 
 #include "exports.h"
 
-using ListPointer = unsigned __int64;
+using ListPointer = uint64_t;
 
 class ListMemoryPointer
 {
@@ -20,10 +20,10 @@ class ListEntryHeader : public ListMemoryPointer
 public:
 	ListEntryHeader *Prev;
 	ListEntryHeader *Next;
-	int Index;
-	int Padding;
-	unsigned long long Size;
-	unsigned long long Alignment;
+	int32_t Index;
+	int32_t Padding;
+	uint64_t Size;
+	uint64_t Alignment;
 	bool Pinned;
 };
 
@@ -32,7 +32,7 @@ class MoveData
 public:
 	ListPointer SrcIndex;
 	ListPointer DestIndex;
-	int Size;
+	int32_t Size;
 };
 
 class ListAllocator;
@@ -52,23 +52,23 @@ private:
 class ListAllocator
 {
 public:
-	XENGINEAPI ListAllocator(unsigned long long size, int maxAllocs);
+	XENGINEAPI ListAllocator(uint64_t size, int32_t maxAllocs);
 	XENGINEAPI ~ListAllocator();
 
-	XENGINEAPI ListMemoryPointer *AllocateMemory(int size, int alignment);
+	XENGINEAPI ListMemoryPointer *AllocateMemory(int32_t size, int32_t alignment);
 	XENGINEAPI void DeallocateMemory(ListMemoryPointer *ptr);
 
-	XENGINEAPI int GetAllocationSize(ListMemoryPointer *ptr);
+	XENGINEAPI int32_t GetAllocationSize(ListMemoryPointer *ptr);
 
-	XENGINEAPI void ShrinkToFit(int extraMemory);
-	XENGINEAPI void SetSize(unsigned long long maxSize);
+	XENGINEAPI void ShrinkToFit(int32_t extraMemory);
+	XENGINEAPI void SetSize(uint64_t maxSize);
 
 	XENGINEAPI std::shared_ptr<PinnedListMemory> PinMemory(ListMemoryPointer *ptr);
 	XENGINEAPI void PinMemoryUnmanaged(ListMemoryPointer *ptr);
 	XENGINEAPI void UnpinMemoryUnmanaged(ListMemoryPointer *ptr);
 
-	XENGINEAPI int GetMaxSize();
-	XENGINEAPI int GetFreeSpace();
+	XENGINEAPI int32_t GetMaxSize();
+	XENGINEAPI int32_t GetFreeSpace();
 
 	XENGINEAPI void SetMoveCallback(std::function<void(MoveData&)> move);
 	XENGINEAPI void SetDefragBeginCallback(std::function<void()> begin);
@@ -80,16 +80,16 @@ private:
 	std::mutex m_allocLock;
 	
 	std::vector<ListEntryHeader> m_headerLinks;
-	concurrency::concurrent_queue<int> m_freeList;
+	concurrency::concurrent_queue<int32_t> m_freeList;
 
 	ListEntryHeader *m_first = nullptr;
 	ListEntryHeader *m_last = nullptr;
 
-	unsigned long long m_pointer;
-	std::atomic<unsigned long long> m_freeSpace;
+	uint64_t m_pointer;
+	std::atomic<uint64_t> m_freeSpace;
 
-	unsigned long long m_maxSize;
-	int m_maxHeaders;
+	uint64_t m_maxSize;
+	int32_t m_maxHeaders;
 
 	std::function<void(MoveData&)> m_move;
 	std::function<void()> m_defragBegin = []() {};

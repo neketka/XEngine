@@ -1,6 +1,6 @@
 #pragma once
 #include "exports.h"
 
-using UniqueId = unsigned long long;
+using UniqueId = uint64_t;
 
 XENGINEAPI UniqueId GenerateID();

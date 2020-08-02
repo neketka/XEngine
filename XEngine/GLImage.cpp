@@ -114,15 +114,15 @@ std::unordered_map<SamplerWrapMode, GLenum> wrapMode =
 
 VectorFormatDesc GetFormatDesc(VectorDataFormat format)
 {
-	return internalFormatAsList[static_cast<int>(format)].first;
+	return internalFormatAsList[static_cast<int32_t>(format)].first;
 }
 
 GLenum GetInternalFormatFromFormat(VectorDataFormat format)
 {
-	return internalFormatAsList[static_cast<int>(format)].second;
+	return internalFormatAsList[static_cast<int32_t>(format)].second;
 }
 
-GLImage::GLImage(GraphicsContext *context, VectorDataFormat format, glm::ivec3 size, int miplevels, ImageUsageBit usage, ImageType type) : m_size(size), 
+GLImage::GLImage(GraphicsContext *context, VectorDataFormat format, glm::ivec3 size, int32_t miplevels, ImageUsageBit usage, ImageType type) : m_size(size), 
 	m_levels(miplevels), m_context(context), m_vec(format)
 {
 	m_target = typeToEnum[type];
@@ -137,7 +137,7 @@ GLImage::~GLImage()
 	});
 }
 
-GraphicsImageView *GLImage::CreateView(ImageType type, VectorDataFormat format, int baseLevel, int levels, int baseLayer, int layers, ImageSwizzleComponent redSwizzle,
+GraphicsImageView *GLImage::CreateView(ImageType type, VectorDataFormat format, int32_t baseLevel, int32_t levels, int32_t baseLayer, int32_t layers, ImageSwizzleComponent redSwizzle,
 	ImageSwizzleComponent greenSizzle, ImageSwizzleComponent blueSwizzle, ImageSwizzleComponent alphaSwizzle)
 {
 	GLImageView *v = new GLImageView(m_context, this, type, format, baseLevel, levels, baseLayer, layers, redSwizzle, greenSizzle, blueSwizzle, alphaSwizzle);
@@ -160,6 +160,8 @@ void GLImage::InitInternal()
 		break;
 	case GL_TEXTURE_2D_ARRAY:
 	case GL_TEXTURE_CUBE_MAP_ARRAY:
+		glTextureStorage3D(m_id, m_levels, m_format, m_size.x, m_size.y, m_size.z / 6);
+		break;
 	case GL_TEXTURE_3D:
 		glTextureStorage3D(m_id, m_levels, m_format, m_size.x, m_size.y, m_size.z);
 		break;
@@ -184,7 +186,7 @@ void GLSampler::InitInternal()
 	glSamplerParameterf(m_id, GL_TEXTURE_MAX_ANISOTROPY_EXT, m_state.AnisotropicFiltering ? 0 : m_state.MaxAnisotropy);
 	if (m_state.UseBorderAsInteger)
 	{
-		int borderInt[] = { m_state.BorderColor.r, m_state.BorderColor.g, m_state.BorderColor.b, m_state.BorderColor.a };
+		int32_t borderInt[] = { m_state.BorderColor.r, m_state.BorderColor.g, m_state.BorderColor.b, m_state.BorderColor.a };
 		glSamplerParameteriv(m_id, GL_TEXTURE_BORDER_COLOR, borderInt);
 	}
 	else
@@ -206,7 +208,7 @@ void GLSampler::InitInternal()
 	glSamplerParameteri(m_id, GL_TEXTURE_WRAP_R, wrapMode[m_state.WrapW]);
 }
 
-GLImageView::GLImageView(GraphicsContext *context, GLImage *of, ImageType type, VectorDataFormat format, int baseLevel, int levels, int baseLayer, int layers, ImageSwizzleComponent redSwizzle,
+GLImageView::GLImageView(GraphicsContext *context, GLImage *of, ImageType type, VectorDataFormat format, int32_t baseLevel, int32_t levels, int32_t baseLayer, int32_t layers, ImageSwizzleComponent redSwizzle,
 	ImageSwizzleComponent greenSizzle, ImageSwizzleComponent blueSwizzle, ImageSwizzleComponent alphaSwizzle) : m_context(context), m_represented(of), m_baseLevel(baseLevel), m_levels(levels),
 	m_baseLayer(baseLayer), m_layers(layers)
 {
@@ -235,7 +237,7 @@ void GLImageView::InitInternal()
 	glTextureParameteriv(m_id, GL_TEXTURE_SWIZZLE_RGBA, swizzleMask);
 }
 
-GLRenderTarget::GLRenderTarget(GraphicsContext *context, std::vector<GraphicsImageView *>&& attachments, GraphicsImageView *depthStencil, int width, int height, int layers) : m_width(width), m_height(height), m_layers(layers), 
+GLRenderTarget::GLRenderTarget(GraphicsContext *context, std::vector<GraphicsImageView *>&& attachments, GraphicsImageView *depthStencil, int32_t width, int32_t height, int32_t layers) : m_width(width), m_height(height), m_layers(layers), 
 	m_context(context), m_attachments(attachments), m_depthStencil(depthStencil)
 {
 	m_colorAtts = attachments.size();
@@ -252,7 +254,7 @@ GLRenderTarget::~GLRenderTarget()
 void GLRenderTarget::InitInternal()
 {
 	glCreateFramebuffers(1, &m_id);
-	int index = 0;
+	int32_t index = 0;
 	for (GraphicsImageView *view : m_attachments)
 	{
 		GLImageView *v = dynamic_cast<GLImageView *>(view);
@@ -303,7 +305,7 @@ GLRenderPass::GLRenderPass(GraphicsRenderPassState& state)
 	if (storeStencil == GraphicsRenderPassLoadStore::Discard)
 		m_discardAfter.push_back(GL_STENCIL_ATTACHMENT);
 
-	for (int i = 0; i < state.LoadOperations.size() - 1; ++i)
+	for (int32_t i = 0; i < state.LoadOperations.size() - 1; ++i)
 	{
 		GraphicsRenderPassLoadStore load = state.LoadOperations[i];
 		GraphicsRenderPassLoadStore store = state.StoreOperations[i];
@@ -325,17 +327,17 @@ GLRenderPass::GLRenderPass(GraphicsRenderPassState& state)
 			perf.DoNoneAttachments = true;
 		else
 		{
-			for (int i : subpass.ColorAttachments)
+			for (int32_t i : subpass.ColorAttachments)
 				perf.enums.push_back(GL_COLOR_ATTACHMENT0 + i);
 		}
 		m_subpassPerform.push_back(perf);
 	}
 }
 
-void GLRenderPass::PerformPreOps(std::vector<glm::vec4>& attachmentClearValues, int stencil)
+void GLRenderPass::PerformPreOps(std::vector<glm::vec4>& attachmentClearValues, int32_t stencil)
 {
 	glClearBufferfi(GL_DEPTH_STENCIL, 0, attachmentClearValues.back().r, stencil);
-	for (int i : m_clearColors)
+	for (int32_t i : m_clearColors)
 		glClearBufferfv(GL_COLOR, i, &attachmentClearValues[i][0]); 
 	/*
 	if (m_clearDepth)
@@ -346,7 +348,7 @@ void GLRenderPass::PerformPreOps(std::vector<glm::vec4>& attachmentClearValues, 
 	glInvalidateFramebuffer(GL_DRAW_FRAMEBUFFER, m_discard.size(), m_discard.data());
 }
 
-void GLRenderPass::BindSubpass(int i)
+void GLRenderPass::BindSubpass(int32_t i)
 {
 	GLSubpassPerform& perform = m_subpassPerform[i];
 	if (perform.DoTextureBarrier)

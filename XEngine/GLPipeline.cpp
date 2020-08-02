@@ -162,7 +162,7 @@ void GLPipeline::BindState()
 	else
 	{
 		glDisable(GL_COLOR_LOGIC_OP);
-		int i = 0;
+		int32_t i = 0;
 		for (GraphicsRenderBlendingAttachmentState& state : m_state.BlendingState.BufferBlending)
 		{
 			if (state.Blending)
@@ -194,8 +194,8 @@ void GLPipeline::InitInternal()
 	for (GraphicsRenderVertexAttributeData& data : m_state.VertexInputState.AttributeData)
 	{
 		VectorFormatDesc desc = GetFormatDesc(data.Format);
-		int dataSize = (desc.RBits > 0 ? 1 : 0) + (desc.GBits > 0 ? 1 : 0) + (desc.BBits > 0 ? 1 : 0) + (desc.ABits > 0 ? 1 : 0);
-		int maxBit = glm::max<int>(desc.RBits, glm::max<int>(desc.GBits, glm::max<int>(desc.BBits, desc.ABits)));
+		int32_t dataSize = (desc.RBits > 0 ? 1 : 0) + (desc.GBits > 0 ? 1 : 0) + (desc.BBits > 0 ? 1 : 0) + (desc.ABits > 0 ? 1 : 0);
+		int32_t maxBit = glm::max<int32_t>(desc.RBits, glm::max<int32_t>(desc.GBits, glm::max<int32_t>(desc.BBits, desc.ABits)));
 		glEnableVertexArrayAttrib(m_vao, data.ShaderAttributeLocation);
 		glVertexArrayAttribBinding(m_vao, data.ShaderAttributeLocation, data.BufferBinding);
 		if (desc.Integer)

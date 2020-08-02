@@ -39,7 +39,7 @@ void GLSync::SetSync(GLsync sync)
 	m_hasSync = true;
 }
 
-bool GLSync::Wait(unsigned long long nanoSecTimeout)
+bool GLSync::Wait(uint64_t nanoSecTimeout)
 {
 	m_waiting = true;
 	m_curWaitTime = nanoSecTimeout;

@@ -16,16 +16,19 @@ class InternalTypeInfo
 {
 public:
 	std::string Name;
-	int Size;
+	int32_t Size;
 	UniqueId Identifier;
-	int ComponentOffset;
-	int BufferOffset;
+	int32_t ComponentOffset;
+	int32_t BufferOffset;
 	bool Buffered;
 };
 
 class ECSRegistrar
 {
 public:
+	ECSRegistrar() {
+		RegisterComponent<EntityIdComponent>();
+	}
 	XENGINEAPI ~ECSRegistrar();
 	XENGINEAPI void AddSystem(ISystem *system);
 	XENGINEAPI void AddSystems(std::vector<ISystem *> systems);
@@ -34,7 +37,6 @@ public:
 	template<class T>
 	void RegisterComponent()
 	{
-		UniqueId id = GenerateID();
 		InternalTypeInfo info;
 		info.Name = StaticComponentInfo<T>::GetName();
 		info.Size = StaticComponentInfo<T>::GetSize();
@@ -43,17 +45,17 @@ public:
 		info.ComponentOffset = StaticComponentInfo<T>::GetComponentPointerOffset();
 		if (info.Buffered)
 			info.BufferOffset = BufferedComponentInfo<T>::GetBufferPointerOffset();
-		m_components[id] = info;
-		m_componentsByName[info.Name] = id;
+		m_components[info.Identifier] = info;
+		m_componentsByName[info.Name] = info.Identifier;
 	}
 	template<class T, class ...TArgs>
 	void RegisterComponents() { RegisterComponent<T>(); RegisterComponents<TArgs>(); }
 
 	XENGINEAPI UniqueId GetComponentIdByName(std::string name);
 	XENGINEAPI std::string GetComponentName(UniqueId id);
-	XENGINEAPI int GetComponentSize(UniqueId id);
-	XENGINEAPI int GetComponentPointerOffset(UniqueId id);
-	XENGINEAPI int GetBufferPointerOffset(UniqueId id);
+	XENGINEAPI int32_t GetComponentSize(UniqueId id);
+	XENGINEAPI int32_t GetComponentPointerOffset(UniqueId id);
+	XENGINEAPI int32_t GetBufferPointerOffset(UniqueId id);
 	XENGINEAPI bool IsComponentBuffered(UniqueId id);
 	XENGINEAPI void InitSystems();
 	inline std::map<UniqueId, InternalTypeInfo>& GetComponentMap() { return m_components; }

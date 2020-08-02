@@ -1,9 +1,9 @@
 #include "pch.h"
 #include "WorkerManager.h"
 
-WorkerManager::WorkerManager(int threads)
+WorkerManager::WorkerManager(int32_t threads)
 {
-	for (int i = 0; i < threads; ++i)
+	for (int32_t i = 0; i < threads; ++i)
 	{
 		std::thread *worker = new std::thread(&WorkerManager::RunThreadTasks, this);
 		m_threads.push_back(worker);
@@ -22,7 +22,7 @@ WorkerManager::~WorkerManager()
 
 void WorkerManager::CheckForFree()
 {
-	for (int i = 0; i < m_workerTaskHolders.size(); ++i)
+	for (int32_t i = 0; i < m_workerTaskHolders.size(); ++i)
 	{
 		InternalWorkerTask *task = m_workerTaskHolders[i];
 		if (task->IsFree())
@@ -41,7 +41,7 @@ void WorkerManager::RunThreadTasks()
 		InternalWorkerTask *task;
 		if (m_tasks.try_pop(task))
 		{
-			int iteration = task->GetNextIterationNumber();
+			int32_t iteration = task->GetNextIterationNumber();
 			if (iteration >= 0)
 				m_tasks.push(task);
 			else

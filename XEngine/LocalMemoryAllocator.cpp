@@ -3,7 +3,7 @@
 #include "LocalMemoryAllocator.h"
 #include "ListAllocator.h"
 
-LocalMemoryAllocator::LocalMemoryAllocator(unsigned long long size, int maxAllocs, bool resizable)
+LocalMemoryAllocator::LocalMemoryAllocator(uint64_t size, int32_t maxAllocs, bool resizable)
 	: m_allocator(size, maxAllocs), m_resizable(resizable), m_size(size)
 {
 	m_memory = std::malloc(size);
@@ -15,12 +15,12 @@ LocalMemoryAllocator::~LocalMemoryAllocator()
 	std::free(m_memory);
 }
 
-bool LocalMemoryAllocator::WillFit(int size)
+bool LocalMemoryAllocator::WillFit(int32_t size)
 {
 	return m_allocator.GetFreeSpace() >= size;
 }
 
-ListMemoryPointer *LocalMemoryAllocator::RequestSpace(int bytes, int alignment)
+ListMemoryPointer *LocalMemoryAllocator::RequestSpace(int32_t bytes, int32_t alignment)
 {
 	if (!WillFit(bytes + alignment - 1))
 		alignment = 1;

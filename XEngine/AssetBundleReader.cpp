@@ -13,14 +13,14 @@ AssetBundleHeader& AssetBundleReader::GetOrLoadAssetBundleHeader(std::string pat
 		return header;
 	header.Path = path;
 
-	int count = 0;
+	int32_t count = 0;
 	std::ifstream stream(path.c_str(), std::ifstream::in | std::ifstream::binary);
-	stream.read(reinterpret_cast<char *>(&count), sizeof(int));
+	stream.read(reinterpret_cast<char *>(&count), sizeof(int32_t));
 
-	for (int i = 0; i < count; ++i)
+	for (int32_t i = 0; i < count; ++i)
 	{
-		int pathLen = 0;
-		stream.read(reinterpret_cast<char *>(&pathLen), sizeof(int));
+		int32_t pathLen = 0;
+		stream.read(reinterpret_cast<char *>(&pathLen), sizeof(int32_t));
 		char *path = new char[pathLen + 1];
 		stream.read(path, pathLen);
 		path[pathLen] = '\0';
@@ -48,7 +48,7 @@ std::vector<std::string> AssetBundleReader::LoadAssetHeadersFromHeader(AssetBund
 	paths.reserve(header.Assets.size());
 
 	AssetManager *manager = XEngineInstance->GetAssetManager();
-	int index = 0;
+	int32_t index = 0;
 	for (auto pair : header.Assets)
 	{
 		AssetDescriptorPreHeader& preheader = preHeadersDest[index];
@@ -82,9 +82,9 @@ void AssetBundleReader::LoadAssetDataFromHeader(AssetBundleHeader& header, std::
 	stream.seekg(header.ByteSize + entry.OffsetFromZero, std::istream::beg);
 	stream.read(reinterpret_cast<char *>(&preheader), sizeof(AssetDescriptorPreHeader));
 
-	unsigned long long initialPosition = static_cast<unsigned long long>(stream.tellg()) + preheader.HeaderSize;
+	uint64_t initialPosition = static_cast<uint64_t>(stream.tellg()) + preheader.HeaderSize;
 
-	int index = 0;
+	int32_t index = 0;
 	for (AssetLoadRange& range : ranges)
 	{
 		PinnedLocalMemory<char> content = manager->GetLoadMemory().GetMemory<char>(dest[index]);
@@ -97,13 +97,14 @@ void AssetBundleReader::LoadAssetDataFromHeader(AssetBundleHeader& header, std::
 }
 
 void AssetBundleReader::ExportAssetBundleToDisc(std::string filePath, std::vector<AssetDescriptorPreHeader>& preHeaders, 
-	std::vector<std::string>& paths, std::vector<LoadMemoryPointer>& headers, std::vector<LoadMemoryPointer>& contents)
+	std::vector<std::string>& paths, std::vector<LoadMemoryPointer>& headers, std::vector<LoadMemoryPointer>& contents, 
+	std::vector<std::vector<AssetLoadRange>>& ranges)
 {
 	AssetManager *manager = XEngineInstance->GetAssetManager();
 	std::ofstream stream(filePath.c_str(), std::ostream::out | std::ostream::binary);
 	
-	int count = preHeaders.size();
-	stream.write(reinterpret_cast<char *>(&count), sizeof(int));
+	int32_t count = preHeaders.size();
+	stream.write(reinterpret_cast<char *>(&count), sizeof(int32_t));
 
 	AssetBundleHeader header;
 	header.Path = filePath;
@@ -111,13 +112,13 @@ void AssetBundleReader::ExportAssetBundleToDisc(std::string filePath, std::vecto
 	AssetBundleHeaderEntry entry;
 
 	decltype(AssetBundleHeaderEntry::OffsetFromZero) pointer = 0;
-	for (int i = 0; i < preHeaders.size(); ++i)
+	for (int32_t i = 0; i < preHeaders.size(); ++i)
 	{
 		std::string& path = paths[i];
 		AssetDescriptorPreHeader& preHeader = preHeaders[i];
 
 		count = path.length();
-		stream.write(reinterpret_cast<char *>(&count), sizeof(int));
+		stream.write(reinterpret_cast<char *>(&count), sizeof(int32_t));
 		stream.write(path.c_str(), path.length());
 		stream.write(reinterpret_cast<char *>(&pointer), sizeof(pointer));
 
@@ -131,15 +132,18 @@ void AssetBundleReader::ExportAssetBundleToDisc(std::string filePath, std::vecto
 	header.ByteSize = pointer;
 	m_headers[header.Path] = header;
 
-	for (int i = 0; i < preHeaders.size(); ++i)
+	for (int32_t i = 0; i < preHeaders.size(); ++i)
 	{
 		AssetDescriptorPreHeader& preHeader = preHeaders[i];
 		PinnedLocalMemory<char> header = manager->GetLoadMemory().GetMemory<char>(headers[i]);
-		PinnedLocalMemory<char> content = manager->GetLoadMemory().GetMemory<char>(contents[i]);
 
 		stream.write(reinterpret_cast<char *>(&preHeader), sizeof(AssetDescriptorPreHeader));
 		stream.write(header.GetData(), preHeader.HeaderSize);
-		stream.write(content.GetData(), preHeader.AssetSize);
+		if (contents[i])
+		{
+			PinnedLocalMemory<char> content = manager->GetLoadMemory().GetMemory<char>(contents[i]);
+			stream.write(content.GetData(), preHeader.AssetSize);
+		}
 	}
 
 	stream.flush();

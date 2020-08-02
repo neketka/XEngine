@@ -1,7 +1,7 @@
 #include "pch.h"
 #include "GPUMemoryAllocator.h"
 
-GPUMemoryAllocator::GPUMemoryAllocator(unsigned long long size, int maxAllocs, bool resizable)
+GPUMemoryAllocator::GPUMemoryAllocator(uint64_t size, int32_t maxAllocs, bool resizable)
 	: m_allocator(size, maxAllocs), m_resizable(resizable), m_size(size), m_temp(nullptr), m_tempSize(-1)
 {
 	m_context = XEngineInstance->GetInterface<DisplayInterface>(HardwareInterfaceType::Display)->GetGraphicsContext();
@@ -21,7 +21,7 @@ GPUMemoryAllocator::~GPUMemoryAllocator()
 		delete m_temp;
 }
 
-bool GPUMemoryAllocator::WillFit(int size)
+bool GPUMemoryAllocator::WillFit(int32_t size)
 {
 	return m_allocator.GetFreeSpace() >= size;
 }
@@ -31,7 +31,7 @@ PinnedGPUMemory GPUMemoryAllocator::GetMemory(ListMemoryPointer *ptr)
 	return PinnedGPUMemory(m_allocator.PinMemory(ptr), m_memory, m_allocator.GetAllocationSize(ptr));
 }
 
-ListMemoryPointer *GPUMemoryAllocator::RequestSpace(int bytes, int alignment)
+ListMemoryPointer *GPUMemoryAllocator::RequestSpace(int32_t bytes, int32_t alignment)
 {
 	m_resizeMutex.lock_shared();
 	if (!WillFit(bytes + alignment - 1))
@@ -42,8 +42,8 @@ ListMemoryPointer *GPUMemoryAllocator::RequestSpace(int bytes, int alignment)
 		m_resizeMutex.unlock_shared();
 		m_resizeMutex.lock();
 
-		unsigned long long oldSize = m_size;
-		unsigned long long newSize = std::exp2l(std::floorl(std::log2l(oldSize)) + 1);
+		uint64_t oldSize = m_size;
+		uint64_t newSize = std::exp2l(std::floorl(std::log2l(oldSize)) + 1);
 
 		GraphicsMemoryBuffer *newBuf = m_context->CreateBuffer(newSize, BufferUsageBit::TransferSource | BufferUsageBit::TransferDest,
 			GraphicsMemoryTypeBit::DeviceResident | GraphicsMemoryTypeBit::DynamicAccess);
@@ -103,7 +103,7 @@ void GPUMemoryAllocator::MoveMemory(MoveData& data)
 {
 	if (data.DestIndex + data.Size > data.SrcIndex)
 	{
-		int diffSize = data.DestIndex + data.Size - data.SrcIndex;
+		int32_t diffSize = data.DestIndex + data.Size - data.SrcIndex;
 		if (m_tempSize < diffSize)
 		{
 			if (m_temp)

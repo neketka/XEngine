@@ -4,22 +4,21 @@
 #include "TestSystem.h"
 
 #include "MeshAsset.h"
+#include "TextureAsset.h"
+
 #include "OBJMeshImporter.h"
+#include "ImageImporter.h"
 
 XEngine *XEngineInstance;
 XEngine *XEngine::m_engineInstance;
 
-void XEngine::InitializeEngine(std::string name, int threadCount, bool defaultSystems, std::string rootPath)
+void XEngine::InitializeEngine(std::string name, int32_t threadCount, bool defaultSystems, std::string rootPath)
 {
 	XEngineInstance = m_engineInstance = new XEngine;
 	m_engineInstance->m_name = name;
 	m_engineInstance->m_maxECSThreads = std::max(0, threadCount - 2);
 	m_engineInstance->m_rootPath = rootPath;
 	m_engineInstance->m_ecsThreads = new std::thread *[m_engineInstance->m_maxECSThreads];
-	
-	// Testing below
-	m_engineInstance->m_ecsRegistrar->RegisterComponent<TestComponent>();
-	m_engineInstance->m_ecsRegistrar->AddSystem(new TestSystem);
 }
 
 XEngine& XEngine::GetInstance()
@@ -36,9 +35,9 @@ void XEngine::DoIdleWork()
 void XEngine::AddInterface(HardwareInterface *interface, HardwareInterfaceType type)
 {
 	bool hasAlreadyBeenAdded = false;
-	for (int i = 0; i < 8; ++i)
+	for (int32_t i = 0; i < 8; ++i)
 	{
-		unsigned int mask = (0b1 << i) & static_cast<unsigned int>(type);
+		uint32_t mask = (0b1 << i) & static_cast<uint32_t>(type);
 		if (mask)
 		{
 			m_hwInterfaces[static_cast<HardwareInterfaceType>(mask)] = interface;
@@ -70,7 +69,7 @@ void XEngine::Run()
 {
 	float sumOfTimeForInterval = 0;
 	float deltaTime = 0;
-	int intervalCount = 0;
+	int32_t intervalCount = 0;
 	m_beginTime = std::chrono::high_resolution_clock::now();
 	m_running = true;
 	Init();
@@ -123,7 +122,7 @@ bool XEngine::IsRunning()
 	return m_running;
 }
 
-void XEngine::AddPropertySet(std::map<std::string, int> properties)
+void XEngine::AddPropertySet(std::map<std::string, int32_t> properties)
 {
 	for (auto kp : properties)
 	{
@@ -139,7 +138,7 @@ void XEngine::AddPropertySet(std::map<std::string, std::string> properties)
 	}
 }
 
-void XEngine::SetProperty(std::string key, int value)
+void XEngine::SetProperty(std::string key, int32_t value)
 {
 	m_intProps[key] = value;
 }
@@ -155,7 +154,7 @@ std::string *XEngine::GetStringProperty(std::string key)
 	return (itr == m_stringProps.end() ? nullptr : &itr->second);
 }
 
-int *XEngine::GetIntProperty(std::string key)
+int32_t *XEngine::GetIntProperty(std::string key)
 {
 	auto itr = m_intProps.find(key);
 	return (itr == m_intProps.end() ? nullptr : &itr->second);
@@ -294,7 +293,7 @@ void XEngine::Tick(float deltaTime)
 		m_sysManager->ScheduleJobs();
 		m_ecsDt = deltaTime;
 		m_ecsQueued = m_maxECSThreads;
-		m_sysManager->ExecuteJobs(0, deltaTime); // Figure out threading later
+		m_sysManager->ExecuteJobs(0, deltaTime);
 		m_scene->GetComponentManager()->ExecuteSingleThreadOps();
 	}
 
@@ -324,21 +323,26 @@ void XEngine::Init()
 	}
 
 	m_ecsQueued = 0;
-	for (int i = 0; i < m_maxECSThreads; ++i)
+	for (int32_t i = 0; i < m_maxECSThreads; ++i)
 	{
 		std::thread *t = new std::thread(&XEngine::RunECSThread, this, i + 1);
 		m_ecsThreads[i] = t;
 	}
 
+	m_engineInstance->m_ecsRegistrar->RegisterComponent<TestComponent>();
+	m_engineInstance->m_ecsRegistrar->AddSystem(new TestSystem);
+
 	m_assetManager->RegisterLoader(new MeshAssetLoader(1e12, 1e8));
+	m_assetManager->RegisterLoader(new TextureAssetLoader);
 	m_assetManager->RegisterImporter(new OBJMeshImporter);
+	m_assetManager->RegisterImporter(new ImageImporter);
 
 	Scene *scene = new Scene("Test Scene");
 	scene->GetSystemManager()->AddSystem("TestSystem");
 
 	m_engineInstance->m_ecsRegistrar->GetSystem("TestSystem")->SetEnabled(true);
 
-	for (int i = 0; i < 800; ++i)
+	for (int32_t i = 0; i < 800; ++i)
 		scene->GetEntityManager()->CreateEntity({ "TestComponent" });
 
 	m_engineInstance->SetScene(scene);
@@ -352,7 +356,7 @@ void XEngine::Cleanup()
 		delete m_scene;
 	}
 
-	for (int i = 0; i < m_maxECSThreads; ++i)
+	for (int32_t i = 0; i < m_maxECSThreads; ++i)
 	{
 		m_ecsThreads[i]->join();
 		delete m_ecsThreads[i];
@@ -368,7 +372,7 @@ void XEngine::Cleanup()
 	}
 }
 
-void XEngine::RunECSThread(int index)
+void XEngine::RunECSThread(int32_t index)
 {
 	while (m_running)
 	{

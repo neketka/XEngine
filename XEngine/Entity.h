@@ -52,7 +52,6 @@ public:
 	XENGINEAPI Entity CreateEntity(std::vector<std::string> components);
 	XENGINEAPI Entity CreateEntity(std::set<ComponentTypeId> components);
 	XENGINEAPI void DestroyEntity(EntityId id);
-	XENGINEAPI Entity GetEntityByComponent(EntityId id, ComponentTypeId componentId);
 	XENGINEAPI void AddComponentToEntity(EntityId id, ComponentTypeId componentId);
 	XENGINEAPI void RemoveComponentFromEntity(EntityId id, ComponentTypeId componentId);
 	XENGINEAPI std::vector<Entity> GetEntitiesByComponent(ComponentTypeId componentId);

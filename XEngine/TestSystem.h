@@ -1,6 +1,7 @@
 #pragma once
 #include "GraphicsDefs.h"
 #include "MeshAsset.h"
+#include "TextureAsset.h"
 
 class TestSystem : public ISystem
 {
@@ -9,15 +10,17 @@ public:
 	virtual void Destroy() override;
 	virtual std::string GetName() override;
 	virtual std::vector<std::string> GetComponentTypes() override;
-	virtual int GetMaxPostThreadCount() { return 0; }
+	virtual int32_t GetMaxPostThreadCount() { return 0; }
 
 	virtual void Update(float deltaTime, ComponentDataIterator& data) override;
 	virtual void AfterEntityUpdate(float deltaTime) override;
-	virtual void PostUpdate(float deltaTime, int threadIndex) override;
+	virtual void PostUpdate(float deltaTime, int32_t threadIndex) override;
 private:
 	RefCountedAsset<MeshAsset> m_cubeA;
 	PinnedGPUMemory m_cubeAVerts;
 	PinnedGPUMemory m_cubeAInds;
+
+	RefCountedAsset<TextureAsset> m_texture;
 
 	GraphicsCommandBuffer *m_cmdTopBuffer;
 
@@ -30,6 +33,9 @@ private:
 	GraphicsRenderPipeline *m_pipeline;
 	GraphicsMemoryBuffer *m_vertexData;
 
+	GraphicsSampler *m_sampler;
+	GraphicsShaderResourceInstance *m_texInst;
+
 	GraphicsShaderDataSet *m_shaderData;
 
 	GraphicsSpecificShaderCode *m_shaderVertexCode;
@@ -41,6 +47,6 @@ class TestComponent : public Component
 {
 public:
 	bool initialized;
-	int instance;
+	int32_t instance;
 	float myValue;
 };

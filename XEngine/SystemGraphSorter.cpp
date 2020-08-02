@@ -65,7 +65,7 @@ void SystemGraphSorter::RunFromThread(bool isMain)
 
 void SystemGraphSorter::SetupGraph(std::vector<ISystem *>& systems)
 {
-	int index = 0; // Variable is reused
+	int32_t index = 0; // Variable is reused
 	std::map<std::string, ISystem *> systemsMap;
 	std::map<std::string, DirectedSystemGraphNode *> systemNodes;
 
@@ -103,7 +103,7 @@ void SystemGraphSorter::SetupGraph(std::vector<ISystem *>& systems)
 	index = 0;
 	for (DirectedSystemGraphNode *node : m_nodes) // Add all the
 	{
-		for (int innerIndex = 0; innerIndex < m_nodes.size(); ++innerIndex)
+		for (int32_t innerIndex = 0; innerIndex < m_nodes.size(); ++innerIndex)
 		{
 			if (index == innerIndex) // Can be removed by splitting into two loops; saves a compare and jump
 				continue;
@@ -144,7 +144,7 @@ void SystemGraphSorter::SetupGraph(std::vector<ISystem *>& systems)
 	}
 
 	std::stack<DirectedSystemGraphNode *> curNodeStack;
-	std::stack<int> curNodeIndexStack;
+	std::stack<int32_t> curNodeIndexStack;
 
 	index = 0;
 	for (DirectedSystemGraphNode *node : m_nodes)
@@ -155,7 +155,7 @@ void SystemGraphSorter::SetupGraph(std::vector<ISystem *>& systems)
 		while (curNodeStack.size() > 0) // Sever cycles in the graph
 		{
 			DirectedSystemGraphNode *curNode = curNodeStack.top();
-			int& curNodeIndex = curNodeIndexStack.top();
+			int32_t& curNodeIndex = curNodeIndexStack.top();
 
 			if (curNodeIndex >= curNode->Outputs.size())
 			{
@@ -168,7 +168,7 @@ void SystemGraphSorter::SetupGraph(std::vector<ISystem *>& systems)
 			}
 
 			DirectedSystemGraphNode *innerNode = curNode->Outputs[curNodeIndex];
-			int inputIndex = std::distance(innerNode->Inputs.begin(), std::find(innerNode->Inputs.begin(), innerNode->Inputs.end(), node));
+			int32_t inputIndex = std::distance(innerNode->Inputs.begin(), std::find(innerNode->Inputs.begin(), innerNode->Inputs.end(), node));
 			if ((*innerNode->VisitedInputs)[inputIndex])
 			{
 				curNode->Outputs.erase(curNode->Outputs.begin() + curNodeIndex);

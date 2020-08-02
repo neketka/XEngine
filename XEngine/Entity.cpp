@@ -82,24 +82,26 @@ Scene *EntityManager::GetScene()
 	return m_scene;
 }
 
-Entity EntityManager::GetEntityByComponent(EntityId id, ComponentTypeId componentId)
-{
-	return Entity(m_scene->GetComponentManager()->GetFirstComponentGroupWithType(componentId), this); 
-}
-
 std::vector<Entity> EntityManager::GetEntitiesByComponent(ComponentTypeId componentId)
 {
+	class EntityQuery
+	{
+	public:
+		EntityIdComponent *EntityId;
+		void *Component;
+	};
+
 	ECSRegistrar *registrar = XEngine::GetInstance().GetECSRegistrar();
-	UniqueId group = m_scene->GetComponentManager()->AddFilteringGroup({ componentId });
-	int pointerOffset = registrar->GetComponentPointerOffset(componentId); // Get polymorphic pointer conversion offset
+	UniqueId group = m_scene->GetComponentManager()->AddFilteringGroup({ registrar->GetComponentIdByName("EntityIdComponent"), componentId });
+	int32_t pointerOffset = registrar->GetComponentPointerOffset(componentId); // Get polymorphic pointer conversion offset
 	std::vector<Entity> ents;
 	std::vector<ComponentDataIterator> *compIterators = m_scene->GetComponentManager()->GetFilteringGroup(group, false); // Get all iterators of the filtering group containing only that component type
 	for (ComponentDataIterator iter : *compIterators)
 	{
-		for (void **dat = iter.Next<void *>(); dat; dat = iter.Next<void *>()) // Iterator though the components
+		EntityQuery *q;
+		while (q = iter.Next<EntityQuery>())
 		{
-			EntityId id = m_scene->GetComponentManager()->Upcast<Component>(dat, pointerOffset)->EntityID;
-			ents.push_back(Entity(id, this));
+			ents.push_back(Entity(q->EntityId->EntityId, this));
 		}
 	}
 	

@@ -8,8 +8,8 @@ class GLInitable
 public:
 	void InitializeFromContext()
 	{
-		if (m_finished)
-			return;
+		/*if (m_finished)
+			return;*/
 		InitInternal();
 		m_finished = true;
 	}

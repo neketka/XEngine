@@ -2,7 +2,7 @@
 #include "GLBuffer.h"
 #include "GLContext.h"
 
-GLBuffer::GLBuffer(GraphicsContext *context, unsigned long long byteSize, GraphicsMemoryTypeBit mem) : m_size(byteSize), m_context(context)
+GLBuffer::GLBuffer(GraphicsContext *context, uint64_t byteSize, GraphicsMemoryTypeBit mem) : m_size(byteSize), m_context(context)
 {
 	m_bits = 0;
 	if (!(mem & GraphicsMemoryTypeBit::DeviceResident))
@@ -34,7 +34,7 @@ void GLBuffer::UnmapBuffer()
 	dynamic_cast<GLContext *>(m_context)->MapRequest(this);
 }
 
-void GLBuffer::InvalidateMapped(unsigned long long offset, int size)
+void GLBuffer::InvalidateMapped(uint64_t offset, int32_t size)
 {
 	m_request.Reset();
 	m_request.RequestInvalidate = true;
@@ -55,7 +55,7 @@ void GLBuffer::InitInternal()
 	glNamedBufferStorage(m_id, m_size, nullptr, m_bits);
 }
 
-void GLBuffer::MapBuffer(unsigned long long offset, int length, bool coherent, bool writeOnly)
+void GLBuffer::MapBuffer(uint64_t offset, int32_t length, bool coherent, bool writeOnly)
 {
 	m_request.Reset();
 	m_request.RequestMap = true;
@@ -77,7 +77,7 @@ void GLBuffer::MapBuffer(unsigned long long offset, int length, bool coherent, b
 	m_mapped = m_request.Mapped;
 }
 
-void GLBuffer::FlushMapped(unsigned long long offset, int size)
+void GLBuffer::FlushMapped(uint64_t offset, int32_t size)
 {
 	m_request.Reset();
 	m_request.RequestFlush = true;
