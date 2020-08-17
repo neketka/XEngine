@@ -45,7 +45,7 @@ void SystemGraphSorter::RunFromThread(bool isMain)
 			else
 				node->System->Update(m_deltaTime, job);
 
-			if (--node->QueuedJobs == 0 && node->Mutex.try_lock())
+			if ((--node->QueuedJobs) == 0 && node->Mutex.try_lock())
 			{
 				node->System->AfterEntityUpdate(m_deltaTime);
 				PropagateUntilFindEnabledOrNonEmptyOrVisitedOrUnfulfilled(node->Outputs); // Add jobs to the queue from real systems 
@@ -61,6 +61,11 @@ void SystemGraphSorter::RunFromThread(bool isMain)
 			markedBusy = false;
 		}
 	} while (m_threadsBusy != 0); // Make sure that there are threads still working to add more jobs
+}
+
+std::vector<DirectedSystemGraphNode *>& SystemGraphSorter::GetStartingNodes()
+{
+	return m_startingNodes;
 }
 
 void SystemGraphSorter::SetupGraph(std::vector<ISystem *>& systems)

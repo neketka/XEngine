@@ -8,7 +8,6 @@
 #include "UUID.h"
 
 #include "ListAllocator.h"
-#include "GraphicsDefs.h"
 #include "AssetBundleReader.h"
 #include "LocalMemoryAllocator.h"
 

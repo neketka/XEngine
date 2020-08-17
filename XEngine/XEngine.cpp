@@ -1,13 +1,8 @@
 #include "pch.h"
 #include "XEngine.h"
 
+#include <glm/glm.hpp>
 #include "TestSystem.h"
-
-#include "MeshAsset.h"
-#include "TextureAsset.h"
-
-#include "OBJMeshImporter.h"
-#include "ImageImporter.h"
 
 XEngine *XEngineInstance;
 XEngine *XEngine::m_engineInstance;
@@ -331,11 +326,6 @@ void XEngine::Init()
 
 	m_engineInstance->m_ecsRegistrar->RegisterComponent<TestComponent>();
 	m_engineInstance->m_ecsRegistrar->AddSystem(new TestSystem);
-
-	m_assetManager->RegisterLoader(new MeshAssetLoader(1e12, 1e8));
-	m_assetManager->RegisterLoader(new TextureAssetLoader);
-	m_assetManager->RegisterImporter(new OBJMeshImporter);
-	m_assetManager->RegisterImporter(new ImageImporter);
 
 	Scene *scene = new Scene("Test Scene");
 	scene->GetSystemManager()->AddSystem("TestSystem");
