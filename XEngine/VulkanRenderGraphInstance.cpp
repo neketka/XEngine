@@ -230,6 +230,17 @@ void RenderTask::UpdateShaderViewCollectionBuffer(RenderResource shaderViewColle
 
 void RenderTask::PushShaderConstants(ShaderStageBit stages, uint32_t offset, uint32_t size, void *data)
 {
+	vk::ShaderStageFlagBits stageFlags =
+		(stages & ShaderStageBit::Vertex ? vk::ShaderStageFlagBits::eVertex : static_cast<vk::ShaderStageFlagBits>(0)) |
+		(stages & ShaderStageBit::Fragment ? vk::ShaderStageFlagBits::eFragment : static_cast<vk::ShaderStageFlagBits>(0)) |
+		(stages & ShaderStageBit::Compute ? vk::ShaderStageFlagBits::eCompute : static_cast<vk::ShaderStageFlagBits>(0)) |
+		(stages & ShaderStageBit::TessEval ? vk::ShaderStageFlagBits::eTessellationEvaluation : static_cast<vk::ShaderStageFlagBits>(0)) |
+		(stages & ShaderStageBit::TessControl ? vk::ShaderStageFlagBits::eTessellationControl : static_cast<vk::ShaderStageFlagBits>(0)) |
+		(stages & ShaderStageBit::Geometry ? vk::ShaderStageFlagBits::eGeometry : static_cast<vk::ShaderStageFlagBits>(0));
+
+	m_renderTask->CommandListStateTracker.GetCommandBuffer().pushConstants(
+		m_renderTask->CommandListStateTracker.GetCurrentPipeLayout(), stageFlags, offset, size, data
+	);
 }
 
 void RenderTask::PushMarker(glm::vec4 color, std::string name)
@@ -242,18 +253,34 @@ void RenderTask::PopMarker()
 
 void RenderTask::DeclareShaderViewArrayUsage(uint32_t svCollectionIndex, uint32_t binding, uint32_t first, uint32_t count)
 {
+	m_renderTask->CommandListStateTracker.SVBindingArrayDependencyHint(svCollectionIndex, binding, first, count);
 }
 
 void RenderTask::BindComputeExecutionState(RenderResource state)
 {
+	m_renderTask->CommandListStateTracker.BindComputePipeline(dynamic_cast<VulkanComputePipeline *>(
+		state.m_handle.get()
+	));
 }
 
 void RenderTask::Dispatch(int32_t x, int32_t y, int32_t z)
 {
+	m_renderTask->CommandListStateTracker.InsertPipelineBarriers();
+	m_renderTask->CommandListStateTracker.GetCommandBuffer().dispatch(x, y, z);
 }
 
 void RenderTask::DispatchIndirect(RenderResource indirectBuffer, uint64_t bufferOffset)
 {
+	ResourceState indirectState;
+	indirectState.AccessFlags = vk::AccessFlagBits::eIndirectCommandRead;
+	indirectState.PipeStageFlags = vk::PipelineStageFlagBits::eComputeShader;
+	indirectState.QueueFamilyIndex = m_graphInstance->GetComputeQueueFamily();
+
+	m_renderTask->CommandListStateTracker.TransitionResource(indirectBuffer, indirectState, false);
+	m_renderTask->CommandListStateTracker.InsertPipelineBarriers();
+	m_renderTask->CommandListStateTracker.GetCommandBuffer().dispatchIndirect(
+		dynamic_cast<VulkanBuffer *>(indirectBuffer.m_handle.get())->GetBuffer(), bufferOffset
+	);
 }
 
 void RenderTask::BindGraphicsExecutionState(RenderResource state)

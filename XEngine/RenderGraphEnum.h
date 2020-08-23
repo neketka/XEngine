@@ -1,5 +1,15 @@
 #pragma once
 
+#define DEF_ENUM_FLAGS(x) \
+inline x operator|(x a, x b)\
+{\
+return static_cast<x>(static_cast<int>(a) | static_cast<int>(b));\
+}\
+inline bool operator&(x a, x b)\
+{\
+return static_cast<bool>(static_cast<int>(a) & static_cast<int>(b));\
+}
+
 enum class RenderFormat 
 {
 	RGBA8Unorm, RGB8Unorm, R8G8Unorm, R8Unorm, RGBA32F, R32F, D24UnormS8Ui, D32F
@@ -46,6 +56,8 @@ enum class ShaderStageBit
 	Vertex = 1, Geometry = 2, Fragment = 4, TessControl = 8, TessEval = 16, Compute = 32
 };
 
+DEF_ENUM_FLAGS(ShaderStageBit)
+
 enum class SamplerFilteringMode
 {
 	Nearest, Linear
@@ -70,11 +82,13 @@ enum class ImageUsageBit : int
 {
 	Sampling = 1, Storage = 2, ColorAttachment = 4, DepthStencilAttachment = 8, InputAttachment = 16, TransferSource = 32, TransferDest = 64
 };
+DEF_ENUM_FLAGS(ImageUsageBit)
 
 enum class BufferUsageBit : int
 {
 	TransferSource = 1, TransferDest = 2, ConstantBuffer = 4, StorageBuffer = 8, IndexBuffer = 16, VertexBuffer = 32, IndirectCommandBuffer = 64
 };
+DEF_ENUM_FLAGS(BufferUsageBit)
 
 enum class ShaderViewType
 {
@@ -99,6 +113,7 @@ enum class PipelineStatisticBits : int
 	GeometryShaderPrimitives=16, ClippingInvocations=32, ClippingPrimitives=64, FragmentShaderInvocations=128,
 	TessControlPatches=256, TessEvalInvocations=512, ComputeShaderInvocations=1024
 };
+DEF_ENUM_FLAGS(PipelineStatisticBits)
 
 enum class RenderResourceType
 {
