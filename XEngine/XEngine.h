@@ -4,7 +4,6 @@
 #include <vector>
 #include <map>
 #include <typeinfo>
-#include <glm/glm.hpp>
 
 #include "ECS.h"
 #include "HardwareInterfaces.h"

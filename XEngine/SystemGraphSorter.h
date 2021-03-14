@@ -27,7 +27,6 @@ public:
 	XENGINEAPI void SetDeltaTime(float dt);
 	XENGINEAPI void QueueLayers();
 	XENGINEAPI void RunFromThread(bool isMain);
-	XENGINEAPI std::vector<DirectedSystemGraphNode *>& GetStartingNodes();
 private:
 	void SetupGraph(std::vector<ISystem *>& systems);
 	void PropagateUntilFindEnabledOrNonEmptyOrVisitedOrUnfulfilled(std::vector<DirectedSystemGraphNode *>& nodes);

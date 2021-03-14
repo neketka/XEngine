@@ -2,6 +2,7 @@
 #include "exports.h"
 
 #include "CommonInterface.h"
+#include "GraphicsDefs.h"
 
 enum class DisplayWindowMode
 {
@@ -15,4 +16,5 @@ public:
 	virtual bool IsVSyncEnabled() = 0;
 	virtual void SetDisplayWindowMode(DisplayWindowMode mode) = 0;
 	virtual DisplayWindowMode GetDisplayWindowMode() = 0;
+	virtual GraphicsContext *GetGraphicsContext() = 0;
 };

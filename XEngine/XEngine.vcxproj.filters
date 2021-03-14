@@ -28,6 +28,9 @@
     <Filter Include="Interface Impl">
       <UniqueIdentifier>{afcd95b8-fb5b-4e3f-9ab9-5d7a5c07a3a8}</UniqueIdentifier>
     </Filter>
+    <Filter Include="Interface Impl\SDL and OpenGL">
+      <UniqueIdentifier>{bed3c354-ceda-4906-ad06-cc4501e35df6}</UniqueIdentifier>
+    </Filter>
     <Filter Include="Asset Management">
       <UniqueIdentifier>{2a8e8c78-52b6-452f-90a2-9015e5621e99}</UniqueIdentifier>
     </Filter>
@@ -39,12 +42,6 @@
     </Filter>
     <Filter Include="Asset Management\Importers">
       <UniqueIdentifier>{e027d5ec-99bf-4bc3-aa91-7b81b8f7b05c}</UniqueIdentifier>
-    </Filter>
-    <Filter Include="Interface Impl\SDL and Vulkan">
-      <UniqueIdentifier>{15b73f3b-d874-445d-877f-6ea69968af35}</UniqueIdentifier>
-    </Filter>
-    <Filter Include="Render Graph">
-      <UniqueIdentifier>{5e338f35-7d68-41ae-b9fe-97cc7508ccfa}</UniqueIdentifier>
     </Filter>
   </ItemGroup>
   <ItemGroup>
@@ -117,6 +114,42 @@
     <ClInclude Include="CommonInterface.h">
       <Filter>Hardware Interfaces</Filter>
     </ClInclude>
+    <ClInclude Include="GraphicsDefs.h">
+      <Filter>Hardware Interfaces</Filter>
+    </ClInclude>
+    <ClInclude Include="GraphicsEnums.h">
+      <Filter>Hardware Interfaces</Filter>
+    </ClInclude>
+    <ClInclude Include="GLBuffer.h">
+      <Filter>Interface Impl\SDL and OpenGL</Filter>
+    </ClInclude>
+    <ClInclude Include="GLCmdBuffer.h">
+      <Filter>Interface Impl\SDL and OpenGL</Filter>
+    </ClInclude>
+    <ClInclude Include="GLImage.h">
+      <Filter>Interface Impl\SDL and OpenGL</Filter>
+    </ClInclude>
+    <ClInclude Include="GLPipeline.h">
+      <Filter>Interface Impl\SDL and OpenGL</Filter>
+    </ClInclude>
+    <ClInclude Include="GLShaderData.h">
+      <Filter>Interface Impl\SDL and OpenGL</Filter>
+    </ClInclude>
+    <ClInclude Include="GLContext.h">
+      <Filter>Interface Impl\SDL and OpenGL</Filter>
+    </ClInclude>
+    <ClInclude Include="SDLInterface.h">
+      <Filter>Interface Impl\SDL and OpenGL</Filter>
+    </ClInclude>
+    <ClInclude Include="GLQuery.h">
+      <Filter>Interface Impl\SDL and OpenGL</Filter>
+    </ClInclude>
+    <ClInclude Include="GLInitable.h">
+      <Filter>Interface Impl\SDL and OpenGL</Filter>
+    </ClInclude>
+    <ClInclude Include="GLShaderCompilation.h">
+      <Filter>Interface Impl\SDL and OpenGL</Filter>
+    </ClInclude>
     <ClInclude Include="testimage.h">
       <Filter>Test</Filter>
     </ClInclude>
@@ -138,32 +171,41 @@
     <ClInclude Include="LocalMemoryAllocator.h">
       <Filter>Allocators</Filter>
     </ClInclude>
+    <ClInclude Include="GPUMemoryAllocator.h">
+      <Filter>Allocators</Filter>
+    </ClInclude>
+    <ClInclude Include="GPURingQueue.h">
+      <Filter>Allocators</Filter>
+    </ClInclude>
     <ClInclude Include="FileSpecBuilder.h">
       <Filter>Asset Management</Filter>
     </ClInclude>
+    <ClInclude Include="MeshAsset.h">
+      <Filter>Asset Management\Assets</Filter>
+    </ClInclude>
+    <ClInclude Include="TextureAsset.h">
+      <Filter>Asset Management\Assets</Filter>
+    </ClInclude>
+    <ClInclude Include="OBJMeshImporter.h">
+      <Filter>Asset Management\Importers</Filter>
+    </ClInclude>
+    <ClInclude Include="ImageImporter.h">
+      <Filter>Asset Management\Importers</Filter>
+    </ClInclude>
+    <ClInclude Include="ShaderAsset.h">
+      <Filter>Asset Management\Assets</Filter>
+    </ClInclude>
     <ClInclude Include="DataAsset.h">
       <Filter>Asset Management\Assets</Filter>
+    </ClInclude>
+    <ClInclude Include="GLSLImporter.h">
+      <Filter>Asset Management\Importers</Filter>
     </ClInclude>
     <ClInclude Include="SceneAsset.h">
       <Filter>Asset Management\Assets</Filter>
     </ClInclude>
     <ClInclude Include="ProtoAsset.h">
       <Filter>Asset Management\Assets</Filter>
-    </ClInclude>
-    <ClInclude Include="SDLVKInterface.h">
-      <Filter>Interface Impl\SDL and Vulkan</Filter>
-    </ClInclude>
-    <ClInclude Include="RenderGraphInstance.h">
-      <Filter>Render Graph</Filter>
-    </ClInclude>
-    <ClInclude Include="RenderGraphEnum.h">
-      <Filter>Render Graph</Filter>
-    </ClInclude>
-    <ClInclude Include="RenderGraphStructs.h">
-      <Filter>Render Graph</Filter>
-    </ClInclude>
-    <ClInclude Include="VulkanRenderGraphInstance.h">
-      <Filter>Render Graph</Filter>
     </ClInclude>
   </ItemGroup>
   <ItemGroup>
@@ -203,6 +245,30 @@
     <ClCompile Include="TestSystem.cpp">
       <Filter>Test</Filter>
     </ClCompile>
+    <ClCompile Include="GLBuffer.cpp">
+      <Filter>Interface Impl\SDL and OpenGL</Filter>
+    </ClCompile>
+    <ClCompile Include="GLCmdBuffer.cpp">
+      <Filter>Interface Impl\SDL and OpenGL</Filter>
+    </ClCompile>
+    <ClCompile Include="GLImage.cpp">
+      <Filter>Interface Impl\SDL and OpenGL</Filter>
+    </ClCompile>
+    <ClCompile Include="GLPipeline.cpp">
+      <Filter>Interface Impl\SDL and OpenGL</Filter>
+    </ClCompile>
+    <ClCompile Include="GLShaderData.cpp">
+      <Filter>Interface Impl\SDL and OpenGL</Filter>
+    </ClCompile>
+    <ClCompile Include="GLContext.cpp">
+      <Filter>Interface Impl\SDL and OpenGL</Filter>
+    </ClCompile>
+    <ClCompile Include="SDLInterface.cpp">
+      <Filter>Interface Impl\SDL and OpenGL</Filter>
+    </ClCompile>
+    <ClCompile Include="GLQuery.cpp">
+      <Filter>Interface Impl\SDL and OpenGL</Filter>
+    </ClCompile>
     <ClCompile Include="AssetManager.cpp">
       <Filter>Asset Management</Filter>
     </ClCompile>
@@ -221,23 +287,41 @@
     <ClCompile Include="LocalMemoryAllocator.cpp">
       <Filter>Allocators</Filter>
     </ClCompile>
+    <ClCompile Include="GPUMemoryAllocator.cpp">
+      <Filter>Allocators</Filter>
+    </ClCompile>
+    <ClCompile Include="GPURingQueue.cpp">
+      <Filter>Allocators</Filter>
+    </ClCompile>
     <ClCompile Include="FileSpecBuilder.cpp">
       <Filter>Asset Management</Filter>
     </ClCompile>
+    <ClCompile Include="MeshAsset.cpp">
+      <Filter>Asset Management\Assets</Filter>
+    </ClCompile>
+    <ClCompile Include="TextureAsset.cpp">
+      <Filter>Asset Management\Assets</Filter>
+    </ClCompile>
+    <ClCompile Include="OBJMeshImporter.cpp">
+      <Filter>Asset Management\Importers</Filter>
+    </ClCompile>
+    <ClCompile Include="ImageImporter.cpp">
+      <Filter>Asset Management\Importers</Filter>
+    </ClCompile>
+    <ClCompile Include="ShaderAsset.cpp">
+      <Filter>Asset Management\Assets</Filter>
+    </ClCompile>
     <ClCompile Include="DataAsset.cpp">
       <Filter>Asset Management\Assets</Filter>
+    </ClCompile>
+    <ClCompile Include="GLSLImporter.cpp">
+      <Filter>Asset Management\Importers</Filter>
     </ClCompile>
     <ClCompile Include="SceneAsset.cpp">
       <Filter>Asset Management\Assets</Filter>
     </ClCompile>
     <ClCompile Include="ProtoAsset.cpp">
       <Filter>Asset Management\Assets</Filter>
-    </ClCompile>
-    <ClCompile Include="SDLVKInterface.cpp">
-      <Filter>Interface Impl\SDL and Vulkan</Filter>
-    </ClCompile>
-    <ClCompile Include="VulkanRenderGraphInstance.cpp">
-      <Filter>Render Graph</Filter>
     </ClCompile>
   </ItemGroup>
   <ItemGroup>
